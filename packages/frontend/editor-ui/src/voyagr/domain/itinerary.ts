@@ -41,6 +41,10 @@ export interface Itinerary {
   id: string;
   title: string;
   currency: string;
+  /** Total budget target for the whole trip, in `currency`. */
+  budgetTarget: number;
+  /** Number of travelers (multiplies per-person costs). */
+  travelers: number;
   cities: CitySegment[];
   activities: TravelActivity[];
 }
@@ -52,6 +56,8 @@ export function buildSampleItinerary(): Itinerary {
     id: 'sample-trip',
     title: 'Rome & Florence — 5 Days',
     currency: EUR,
+    budgetTarget: 3500,
+    travelers: 2,
     cities: [
       { id: 'rome', name: 'Rome', order: 0 },
       { id: 'florence', name: 'Florence', order: 1 },
