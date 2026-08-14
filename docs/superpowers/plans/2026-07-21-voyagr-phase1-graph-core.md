@@ -1,5 +1,7 @@
 # Voyagr Phase 1 — Graph Core (No AI) Implementation Plan
 
+> ⚠️ **SUPERSEDED (2026-07-22).** This plan targets a React + React Flow build. The project pivoted to **forking n8n's editor-ui (Vue 3 + Vue Flow) as the frontend** and going **non-commercial** (see the design spec's decision table). The pure-domain design here — the itinerary model, budget engine, invertible command set, transit/edge rules, undo/redo semantics — remains valid and portable to the Vue fork; the React-specific tasks (9–15) do not apply. Kept for reference and for its domain logic.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build a working, persistent, n8n-style itinerary canvas — the graph document model, invertible command set, budget engine, React Flow canvas, node drawer, undo/redo, auth, and persistence — with a hardcoded multi-city sample itinerary and zero AI.

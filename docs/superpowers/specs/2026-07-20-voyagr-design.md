@@ -25,7 +25,7 @@ This is a real startup MVP, not a demo. The product must be honest about data (r
 
 | Decision | Choice |
 |---|---|
-| Purpose | Startup MVP / real product |
+| Purpose | Non-commercial product (personal/free); pivoted 2026-07-22 from "startup MVP" to permit reuse of n8n's Sustainable-Use-licensed frontend |
 | Data strategy | Hybrid: AI plans + real POI grounding (Google Places); costs are AI-estimated ranges, clearly labeled |
 | Audience | Everyone; canvas is the primary UI, n8n visual language |
 | Multi-itinerary | Fast lightweight variant previews → full graph generated only for picked variant(s) |
@@ -37,10 +37,11 @@ This is a real startup MVP, not a demo. The product must be honest about data (r
 | Version history | Undo/redo only in v1; named snapshots deferred (server keeps periodic snapshots as foundation) |
 | Platform | Desktop-first web editing; mobile gets polished read-mostly view (notes + alternative swaps allowed) |
 | Auth/sharing | Accounts (email + Google) + public read-only share links |
-| Business model | Freemium with usage limits; affiliate booking links from day one; Stripe billing UI may land late in v1, metering must not |
-| App architecture | Next.js full-stack monolith |
+| Business model | **None — non-commercial.** No paid tiers, no affiliate revenue. Product is provided free of charge for non-commercial use (required by the reused n8n frontend's Sustainable Use License). AI-cost metering still exists to cap personal spend, but never as a paywall |
+| App architecture | **Fork of n8n's editor-ui** (Vue 3 + Vite + Vue Flow + Pinia) as the frontend, repurposed from workflow automation to travel itineraries; Voyagr supplies its own lightweight backend for trip persistence + AI (replacing n8n's automation backend). Supersedes the earlier Next.js monolith decision |
 | AI architecture | Staged pipeline: Scaffold → Fill → Ground → Assemble, stages reused for scoped recompute |
-| Frontend | React + React Flow (xyflow) |
+| Frontend | **n8n editor-ui canvas (Vue 3 + Vue Flow), reused as-is** and re-domained for travel. Supersedes the earlier React + React Flow decision |
+| Licensing | n8n frontend is under the **Sustainable Use License**: Voyagr must stay free + non-commercial, must preserve n8n's license/copyright notices, and must not use `.ee.` (Enterprise) files without an Enterprise License |
 | Team | Solo + AI assistance, no hard deadline; quality over speed |
 
 ---
