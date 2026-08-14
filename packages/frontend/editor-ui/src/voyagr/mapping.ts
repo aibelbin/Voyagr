@@ -58,7 +58,7 @@ function nodeSubtitle(a: TravelActivity): string {
   return parts.join(' · ');
 }
 
-function toCanvasNodeData(a: TravelActivity): CanvasNodeData {
+export function toCanvasNodeData(a: TravelActivity): CanvasNodeData {
   return {
     id: a.id,
     name: a.name,
