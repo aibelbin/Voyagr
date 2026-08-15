@@ -50,8 +50,7 @@ import { usePersonalizedTemplatesV3Store } from '@/experiments/personalizedTempl
 import EmptyStateLayout from '@/app/components/layouts/EmptyStateLayout.vue';
 import { useReadyToRunStore } from '@/features/workflows/readyToRun/stores/readyToRun.store';
 import { useEmptyStateDetection } from '@/features/workflows/readyToRun/composables/useEmptyStateDetection';
-import InsightsSummary from '@/features/execution/insights/components/InsightsSummary.vue';
-import { useInsightsStore } from '@/features/execution/insights/insights.store';
+import TripStats from '@/features/voyagr/components/TripStats.vue';
 import { useWorkflowsEmptyState } from '@/features/workflows/composables/useWorkflowsEmptyState';
 import type {
 	BaseFilters,
@@ -161,7 +160,6 @@ const foldersStore = useFoldersStore();
 const favoritesStore = useFavoritesStore();
 const posthogStore = usePostHog();
 const usageStore = useUsageStore();
-const insightsStore = useInsightsStore();
 const aiStarterTemplatesStore = useAITemplatesStarterCollectionStore();
 const personalizedTemplatesStore = usePersonalizedTemplatesStore();
 const readyToRunWorkflowsStore = useReadyToRunWorkflowsStore();
@@ -708,16 +706,6 @@ const onFolderDeleted = async (payload: {
 		deleted_sub_workflows: payload.workflowCount,
 	});
 };
-
-const showInsights = computed(() => {
-	return (
-		projectPages.isOverviewSubPage &&
-		insightsStore.isSummaryEnabled &&
-		(workflowListResources.value.length > 0 ||
-			(!personalizedTemplatesV2Store.isFeatureEnabled() &&
-				!personalizedTemplatesV3Store.isFeatureEnabled()))
-	);
-});
 
 const showTemplateRecommendationV2 = computed(() => {
 	return personalizedTemplatesV2Store.isFeatureEnabled() && !loading.value;
@@ -2212,11 +2200,9 @@ const onNameSubmit = async (name: string) => {
 				:has-active-callouts="hasActiveCallouts"
 				@create-folder="createFolderInCurrent"
 			>
-				<InsightsSummary
-					v-if="showInsights"
-					:loading="insightsStore.weeklySummary.isLoading"
-					:summary="insightsStore.weeklySummary.state"
-					time-range="week"
+				<TripStats
+					v-if="projectPages.isOverviewSubPage && workflowListResources.length > 0"
+					:resources="workflowListResources"
 				/>
 			</ProjectHeader>
 		</template>
