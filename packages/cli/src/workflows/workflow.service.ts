@@ -1,3 +1,4 @@
+import type { TripSummary } from '@n8n/api-types';
 import { UpdateWorkflowHistoryVersionDto } from '@n8n/api-types';
 import { LicenseState, Logger } from '@n8n/backend-common';
 import { GlobalConfig } from '@n8n/config';
@@ -55,6 +56,7 @@ import { WorkflowValidationService } from './workflow-validation.service';
 
 import { WebhookService } from '@/webhooks/webhook.service';
 import * as WorkflowHelpers from '@/workflow-helpers';
+import { computeTripSummary } from '@/workflows/trip-summary';
 import { WorkflowPublicationNotifier } from './publication/workflow-publication-notifier';
 import { getErrorDescription, getErrorNodeId, getRequiredRedactionScopes } from './utils';
 import { WorkflowFinderService } from './workflow-finder.service';
@@ -189,6 +191,8 @@ export class WorkflowService {
 			workflows = this.mergeProcessedWorkflows(workflowsAndFolders, workflows);
 		}
 
+		await this.attachTripSummaries(workflows);
+
 		// Add hasResolvableCredentials if dynamic credentials feature is licensed
 		if (this.licenseState.isDynamicCredentialsLicensed()) {
 			return {
@@ -201,6 +205,18 @@ export class WorkflowService {
 			workflows,
 			count,
 		};
+	}
+
+	/** Voyagr: itinerary summary shown on trip cards, derived from each trip's nodes. */
+	private async attachTripSummaries(workflows: Array<{ id: string; tripSummary?: TripSummary }>) {
+		if (workflows.length === 0) return;
+
+		const rows = await this.workflowRepository.findNodesByIds(workflows.map(({ id }) => id));
+		const summaries = new Map(rows.map((row) => [row.id, computeTripSummary(row.nodes ?? [])]));
+
+		for (const workflow of workflows) {
+			workflow.tripSummary = summaries.get(workflow.id);
+		}
 	}
 
 	private async resolveCallableForParentWorkflowId(

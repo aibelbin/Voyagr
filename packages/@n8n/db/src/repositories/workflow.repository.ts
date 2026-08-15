@@ -12,6 +12,7 @@ import type {
 	EntityManager,
 } from '@n8n/typeorm';
 import { PROJECT_ROOT, UserError } from 'n8n-workflow';
+import type { INode } from 'n8n-workflow';
 
 import { FolderRepository } from './folder.repository';
 import { SharedWorkflowRepository } from './shared-workflow.repository';
@@ -82,6 +83,16 @@ export class WorkflowRepository extends Repository<WorkflowEntity> {
 		});
 
 		return result.map(({ id }) => id);
+	}
+
+	/** Nodes for the given workflows, so list views can derive a trip summary. */
+	async findNodesByIds(ids: string[]): Promise<Array<{ id: string; nodes: INode[] }>> {
+		if (ids.length === 0) return [];
+
+		return await this.find({
+			select: { id: true, nodes: true },
+			where: { id: In(ids) },
+		});
 	}
 
 	async getActiveIds({ maxResults }: { maxResults?: number } = {}) {
