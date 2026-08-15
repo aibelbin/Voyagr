@@ -439,6 +439,12 @@
       "dist/credentials/ZulipApi.credentials.js"
     ],
     "nodes": [
+		"dist/nodes/Voyagr/Hotel/Hotel.node.js",
+		"dist/nodes/Voyagr/TouristDestination/TouristDestination.node.js",
+		"dist/nodes/Voyagr/Restaurant/Restaurant.node.js",
+		"dist/nodes/Voyagr/Flight/Flight.node.js",
+		"dist/nodes/Voyagr/Train/Train.node.js",
+		"dist/nodes/Voyagr/CarRental/CarRental.node.js",
       "dist/nodes/ActionNetwork/ActionNetwork.node.js",
       "dist/nodes/ActiveCampaign/ActiveCampaign.node.js",
       "dist/nodes/ActiveCampaign/ActiveCampaignTrigger.node.js",

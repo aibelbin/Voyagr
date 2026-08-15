@@ -1,0 +1,9 @@
+{
+	"node": "n8n-nodes-base.restaurant",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Core Nodes"],
+	"subcategories": { "Core Nodes": ["Food & Dining"] },
+	"resources": { "primaryDocumentation": [] },
+	"alias": ["Restaurant", "Food", "Dining", "Eat", "Meal", "Cafe"]
+}

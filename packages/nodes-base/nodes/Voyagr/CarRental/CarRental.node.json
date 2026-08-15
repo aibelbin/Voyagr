@@ -1,0 +1,9 @@
+{
+	"node": "n8n-nodes-base.carRental",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Core Nodes"],
+	"subcategories": { "Core Nodes": ["Travel Modes"] },
+	"resources": { "primaryDocumentation": [] },
+	"alias": ["Car", "Rental", "Drive", "Transport", "Auto"]
+}

@@ -518,6 +518,30 @@ export function RegularView(nodes: SimplifiedNodeType[]) {
 		title: i18n.baseText('nodeCreator.triggerHelperPanel.whatHappensNext'),
 		items: [
 			{
+				type: 'subcategory',
+				key: 'Hotels',
+				category: CORE_NODES_CATEGORY,
+				properties: { title: 'Hotels', icon: 'house' },
+			},
+			{
+				type: 'subcategory',
+				key: 'Tourist Destinations',
+				category: CORE_NODES_CATEGORY,
+				properties: { title: 'Tourist Destinations', icon: 'telescope' },
+			},
+			{
+				type: 'subcategory',
+				key: 'Food & Dining',
+				category: CORE_NODES_CATEGORY,
+				properties: { title: 'Food & Dining', icon: 'pocket-knife' },
+			},
+			{
+				type: 'subcategory',
+				key: 'Travel Modes',
+				category: CORE_NODES_CATEGORY,
+				properties: { title: 'Travel Modes', icon: 'send' },
+			},
+			{
 				key: DEFAULT_SUBCATEGORY,
 				type: 'subcategory',
 				properties: {
