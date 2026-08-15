@@ -126,6 +126,7 @@ describe('WorkflowService', () => {
 				undefined, // includeScopes
 				undefined, // includeFolders
 				undefined, // onlySharedWithMe
+				undefined, // attachTripSummary
 				customScopes,
 			);
 
@@ -153,6 +154,7 @@ describe('WorkflowService', () => {
 				undefined, // includeScopes
 				undefined, // includeFolders
 				undefined, // onlySharedWithMe
+				undefined, // attachTripSummary
 				customScopes,
 			);
 
@@ -180,6 +182,7 @@ describe('WorkflowService', () => {
 				undefined, // includeScopes
 				undefined, // includeFolders
 				undefined, // onlySharedWithMe
+				undefined, // attachTripSummary
 				executeScope,
 			);
 

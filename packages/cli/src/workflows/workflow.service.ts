@@ -99,6 +99,7 @@ export class WorkflowService {
 		includeScopes?: boolean,
 		includeFolders?: boolean,
 		onlySharedWithMe?: boolean,
+		attachTripSummary = false,
 		requiredScopes: Scope[] = ['workflow:read'],
 	) {
 		let count;
@@ -191,7 +192,9 @@ export class WorkflowService {
 			workflows = this.mergeProcessedWorkflows(workflowsAndFolders, workflows);
 		}
 
-		await this.attachTripSummaries(workflows);
+		if (attachTripSummary) {
+			await this.attachTripSummaries(workflows);
+		}
 
 		// Add hasResolvableCredentials if dynamic credentials feature is licensed
 		if (this.licenseState.isDynamicCredentialsLicensed()) {

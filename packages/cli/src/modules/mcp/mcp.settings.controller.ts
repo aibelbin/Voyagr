@@ -95,6 +95,7 @@ export class McpSettingsController {
 			false, // includeScopes
 			false, // includeFolders
 			false, // onlySharedWithMe
+			false, // attachTripSummary
 			['workflow:update'], // requiredScopes - only return workflows the user can edit
 		);
 

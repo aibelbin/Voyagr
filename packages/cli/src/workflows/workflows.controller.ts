@@ -143,6 +143,7 @@ export class WorkflowsController {
 				!!req.query.includeScopes,
 				userCanListProjectFolders && !!req.query.includeFolders,
 				!!req.query.onlySharedWithMe,
+				true, // attachTripSummary - this is the trips list endpoint
 			);
 
 			res.json({ count, data });
