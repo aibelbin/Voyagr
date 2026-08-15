@@ -66,6 +66,19 @@ Plus **Start Trip** (trigger) and **Sticky Note** (annotations).
 - Removed the **AI** discovery tile and the **"Add another trigger"** tile from the node creator.
 - Verified: search "Gmail"/"Anthropic" → 0 results; only the 7 travel categories show.
 
+**Trips page & Start Trip inputs:**
+- Overview page is now "My Trips": trip wording, no tab row, trip stats strip
+  (trips / stops / budget / next departure) instead of the executions insights.
+- Trip cards show itinerary details — dates, length in nights, stop count,
+  origin, budget. Same-day trips show a single date; undated trips show an
+  "Add dates" nudge.
+- Start Trip holds Starting From, Trip Starts, Trip Ends, Budget and Currency,
+  and emits them so downstream travel nodes receive trip context.
+- The summary is derived server-side from each trip's nodes
+  (`packages/cli/src/workflows/trip-summary.ts`) and attached in
+  `WorkflowService.getMany()` via `workflowRepository.findNodesByIds()`; the
+  list query itself still omits `nodes`.
+
 ---
 
 ## 3. Where things live (key files)
@@ -129,6 +142,9 @@ Plus **Start Trip** (trigger) and **Sticky Note** (annotations).
   credential "HTTP-with-X" pseudo-nodes appearing in search.
 - **Release channel `dev`** adds a `[DEV]` browser-title suffix and greys the logo icon
   (see `Logo.vue` onMounted) — cosmetic.
+- **`dateTime` node params are local-time strings.** `ParameterInput.vue` stores them as `YYYY-MM-DDTHH:mm:ss` with no offset, which `new Date()` parses as local time. Setting `typeOptions.dateOnly` switches the format to `YYYY-MM-DD`, which parses as **UTC** midnight and shifts the calendar day in negative-offset timezones. Start Trip deliberately does not set it.
+- **Renaming an i18n key needs a rebuild.** `BaseTextKey` is derived from `@n8n/i18n`'s built `dist`, so run `pnpm --filter @n8n/i18n build` after editing `en.json` or typecheck won't see the change.
+- **Node 26 shadows jsdom's `localStorage`.** `globalThis.localStorage` is native and undefined without a flag, so editor-ui tests that touch it need `NODE_OPTIONS="--localstorage-file=/tmp/voyagr-ls"`.
 
 ---
 
@@ -174,7 +190,7 @@ n8n is under the **Sustainable Use License** (`LICENSE.md`). Voyagr must stay
 - **AI itinerary generation** (planned next) — generate a trip (a graph of travel
   nodes) from inputs like destination/budget/dates.
 - **Deeper terminology rebrand** — "workflow"/"execution" wording still appears in
-  places (breadcrumbs, menus); swap to trip/itinerary language.
+  breadcrumbs, menus, and the editor itself; swap to trip/itinerary language.
 - **Node execution semantics / budget** — nodes currently just pass their data
   through on execute; a "Plan trip" run could compute totals (budget), build a
   day-by-day summary, etc.
