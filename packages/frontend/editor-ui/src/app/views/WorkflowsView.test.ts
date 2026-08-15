@@ -135,7 +135,7 @@ describe('WorkflowsView', () => {
 
 			const emptyState = getByTestId('empty-resources-list');
 			expect(within(emptyState).getByText('Create your first automation')).toBeVisible();
-			expect(within(emptyState).getByRole('button', { name: 'Create workflow' })).toBeVisible();
+			expect(within(emptyState).getByRole('button', { name: 'Plan a trip' })).toBeVisible();
 		});
 
 		it('should render empty state card regardless of user name', async () => {
@@ -170,7 +170,7 @@ describe('WorkflowsView', () => {
 				await waitAllPromises();
 
 				const button = within(getByTestId('empty-resources-list')).getByRole('button', {
-					name: 'Create workflow',
+					name: 'Plan a trip',
 				});
 				expect(button).toBeDisabled();
 				sourceControl.preferences.branchReadOnly = false;
@@ -181,7 +181,7 @@ describe('WorkflowsView', () => {
 				await waitAllPromises();
 
 				const button = within(getByTestId('empty-resources-list')).getByRole('button', {
-					name: 'Create workflow',
+					name: 'Plan a trip',
 				});
 				expect(button).toBeDisabled();
 			});
