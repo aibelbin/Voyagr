@@ -30,6 +30,10 @@ export class TouristDestination implements INodeType {
 			},
 			{ displayName: 'Entry Fee', name: 'entryFee', type: 'number', default: 0 },
 			{ displayName: 'Visit Duration (hours)', name: 'visitHours', type: 'number', default: 2 },
+			{ displayName: 'Place ID', name: 'placeId', type: 'hidden', default: '' },
+			{ displayName: 'Rating', name: 'rating', type: 'hidden', default: 0 },
+			{ displayName: 'Price Tier', name: 'priceTier', type: 'hidden', default: 0 },
+			{ displayName: 'Photo URL', name: 'photoUrl', type: 'hidden', default: '' },
 		],
 	};
 
@@ -45,6 +49,10 @@ export class TouristDestination implements INodeType {
 					category: this.getNodeParameter('category', i, 'landmark') as string,
 					entryFee: this.getNodeParameter('entryFee', i, 0) as number,
 					visitHours: this.getNodeParameter('visitHours', i, 2) as number,
+					placeId: this.getNodeParameter('placeId', i, '') as string,
+					rating: this.getNodeParameter('rating', i, 0) as number,
+					priceTier: this.getNodeParameter('priceTier', i, 0) as number,
+					photoUrl: this.getNodeParameter('photoUrl', i, '') as string,
 				},
 				pairedItem: { item: i },
 			});

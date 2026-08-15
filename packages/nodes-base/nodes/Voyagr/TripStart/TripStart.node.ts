@@ -39,6 +39,14 @@ export class TripStart implements INodeType {
 				description: 'Where the trip begins',
 			},
 			{
+				displayName: 'Destination',
+				name: 'destination',
+				type: 'string',
+				default: '',
+				placeholder: 'Kyoto, Japan',
+				description: 'Where the trip is going. Suggestions for every stop are based on this.',
+			},
+			{
 				displayName: 'Trip Starts',
 				name: 'startDate',
 				type: 'dateTime',
@@ -84,6 +92,7 @@ export class TripStart implements INodeType {
 				this.helpers.returnJsonArray([
 					{
 						startLocation: this.getNodeParameter('startLocation', '') as string,
+						destination: this.getNodeParameter('destination', '') as string,
 						startDate: this.getNodeParameter('startDate', '') as string,
 						endDate: this.getNodeParameter('endDate', '') as string,
 						budget: this.getNodeParameter('budget', 0) as number,

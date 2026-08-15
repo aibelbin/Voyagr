@@ -29,6 +29,10 @@ export class Restaurant implements INodeType {
 				],
 			},
 			{ displayName: 'Avg Cost per Person', name: 'avgCost', type: 'number', default: 0 },
+			{ displayName: 'Place ID', name: 'placeId', type: 'hidden', default: '' },
+			{ displayName: 'Rating', name: 'rating', type: 'hidden', default: 0 },
+			{ displayName: 'Price Tier', name: 'priceTier', type: 'hidden', default: 0 },
+			{ displayName: 'Photo URL', name: 'photoUrl', type: 'hidden', default: '' },
 		],
 	};
 
@@ -44,6 +48,10 @@ export class Restaurant implements INodeType {
 					cuisine: this.getNodeParameter('cuisine', i, '') as string,
 					mealType: this.getNodeParameter('mealType', i, 'dinner') as string,
 					avgCost: this.getNodeParameter('avgCost', i, 0) as number,
+					placeId: this.getNodeParameter('placeId', i, '') as string,
+					rating: this.getNodeParameter('rating', i, 0) as number,
+					priceTier: this.getNodeParameter('priceTier', i, 0) as number,
+					photoUrl: this.getNodeParameter('photoUrl', i, '') as string,
 				},
 				pairedItem: { item: i },
 			});

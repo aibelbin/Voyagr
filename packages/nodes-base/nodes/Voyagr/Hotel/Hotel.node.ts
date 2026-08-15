@@ -30,6 +30,10 @@ export class Hotel implements INodeType {
 					{ name: '4 Stars', value: 4 }, { name: '5 Stars', value: 5 },
 				],
 			},
+			{ displayName: 'Place ID', name: 'placeId', type: 'hidden', default: '' },
+			{ displayName: 'Rating', name: 'rating', type: 'hidden', default: 0 },
+			{ displayName: 'Price Tier', name: 'priceTier', type: 'hidden', default: 0 },
+			{ displayName: 'Photo URL', name: 'photoUrl', type: 'hidden', default: '' },
 		],
 	};
 
@@ -46,6 +50,10 @@ export class Hotel implements INodeType {
 					nights: this.getNodeParameter('nights', i, 1) as number,
 					pricePerNight: this.getNodeParameter('pricePerNight', i, 0) as number,
 					starRating: this.getNodeParameter('starRating', i, 3) as number,
+					placeId: this.getNodeParameter('placeId', i, '') as string,
+					rating: this.getNodeParameter('rating', i, 0) as number,
+					priceTier: this.getNodeParameter('priceTier', i, 0) as number,
+					photoUrl: this.getNodeParameter('photoUrl', i, '') as string,
 				},
 				pairedItem: { item: i },
 			});
