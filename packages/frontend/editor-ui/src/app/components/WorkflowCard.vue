@@ -44,6 +44,7 @@ import {
 	N8nText,
 	N8nTooltip,
 } from '@n8n/design-system';
+import type { IconName } from '@n8n/design-system';
 import WorkflowCardMcpToggle from '@/features/ai/mcpAccess/components/WorkflowCardMcpToggle.vue';
 import { useMCPStore } from '@/features/ai/mcpAccess/mcp.store';
 import { useMcp } from '@/features/ai/mcpAccess/composables/useMcp';
@@ -52,6 +53,7 @@ import { createEventBus } from '@n8n/utils/event-bus';
 import { usePrivateCredentials } from '@/features/resolvers/composables/usePrivateCredentials';
 import PrivateCredentialIcon from '@/features/resolvers/components/PrivateCredentialIcon.vue';
 import { useDependencies } from '@/app/composables/useDependencies';
+import { formatTripMoney } from '@/features/voyagr/tripFormatting';
 
 const WORKFLOW_LIST_ITEM_ACTIONS = {
 	OPEN: 'open',
@@ -290,6 +292,72 @@ const formattedCreatedAtDate = computed(() => {
 		props.data.createdAt,
 		`d mmmm${String(props.data.createdAt).startsWith(currentYear) ? '' : ', yyyy'}`,
 	);
+});
+
+type TripMetaPart = { icon?: IconName; text: string };
+
+const tripMeta = computed<TripMetaPart[]>(() => {
+	const summary = props.data.tripSummary;
+	if (!summary) return [];
+
+	const currentYear = new Date().getFullYear().toString();
+	const formatTripDate = (value: string) =>
+		dateformat(value, `d mmm${value.startsWith(currentYear) ? '' : ', yyyy'}`);
+
+	const parts: TripMetaPart[] = [];
+
+	if (summary.startDate) {
+		parts.push({
+			icon: 'calendar',
+			text: summary.endDate
+				? `${formatTripDate(summary.startDate)} – ${formatTripDate(summary.endDate)}`
+				: formatTripDate(summary.startDate),
+		});
+
+		if (summary.endDate) {
+			const days = Math.round(
+				(new Date(summary.endDate).getTime() - new Date(summary.startDate).getTime()) / 86_400_000,
+			);
+			if (days > 0) {
+				parts.push({
+					text:
+						days === 1
+							? locale.baseText('workflows.item.trip.day')
+							: locale.baseText('workflows.item.trip.days', { interpolate: { count: days } }),
+				});
+			}
+		}
+	} else {
+		parts.push({ icon: 'calendar', text: locale.baseText('workflows.item.trip.addDates') });
+	}
+
+	if (summary.stopCount === 0) {
+		parts.push({ icon: 'pin', text: locale.baseText('workflows.item.trip.noStops') });
+	} else {
+		parts.push({
+			icon: 'pin',
+			text:
+				summary.stopCount === 1
+					? locale.baseText('workflows.item.trip.stop')
+					: locale.baseText('workflows.item.trip.stops', {
+							interpolate: { count: summary.stopCount },
+						}),
+		});
+	}
+
+	if (summary.startLocation) {
+		parts.push({
+			text: locale.baseText('workflows.item.trip.from', {
+				interpolate: { location: summary.startLocation },
+			}),
+		});
+	}
+
+	if (summary.budget && summary.currency) {
+		parts.push({ icon: 'circle-dollar-sign', text: formatTripMoney(summary.budget, summary.currency) });
+	}
+
+	return parts;
 });
 
 const canEditMcp = computed(
@@ -622,14 +690,25 @@ const tags = computed(
 			</N8nText>
 		</template>
 		<div :class="$style.cardDescription">
-			<span v-show="data">
-				{{ locale.baseText('workflows.item.updated') }}
-				<TimeAgo :date="String(data.updatedAt)" />
-			</span>
-			<span v-show="data" :class="$style.divider">|</span>
-			<span v-show="data">
-				{{ locale.baseText('workflows.item.created') }} {{ formattedCreatedAtDate }}
-			</span>
+			<template v-if="tripMeta.length">
+				<template v-for="(part, index) in tripMeta" :key="part.text">
+					<span v-if="index > 0" :class="$style.divider">|</span>
+					<span :class="$style.tripMetaPart">
+						<N8nIcon v-if="part.icon" :icon="part.icon" size="small" />
+						{{ part.text }}
+					</span>
+				</template>
+			</template>
+			<template v-else>
+				<span v-show="data">
+					{{ locale.baseText('workflows.item.updated') }}
+					<TimeAgo :date="String(data.updatedAt)" />
+				</span>
+				<span v-show="data" :class="$style.divider">|</span>
+				<span v-show="data">
+					{{ locale.baseText('workflows.item.created') }} {{ formattedCreatedAtDate }}
+				</span>
+			</template>
 			<span v-if="showLegacyMcpIndicator" :class="$style.divider">|</span>
 			<span
 				v-show="showLegacyMcpIndicator"
@@ -785,6 +864,12 @@ const tags = computed(
 .cardTags {
 	display: inline-block;
 	margin-top: var(--spacing--4xs);
+}
+
+.tripMetaPart {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--spacing--5xs);
 }
 
 .legacyMcpIndicator {

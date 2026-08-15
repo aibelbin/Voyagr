@@ -5,6 +5,7 @@ import type {
 	IUserManagementSettings,
 	IVersionNotificationSettings,
 	Role,
+	TripSummary,
 } from '@n8n/api-types';
 import type { ILogInStatus } from '@/features/settings/users/users.types';
 import type { NodeViewItemSection } from '@/features/shared/nodeCreator/views/viewsData';
@@ -298,6 +299,7 @@ export type WorkflowResource = BaseResource & {
 	parentFolder?: ResourceParentFolder;
 	settings?: Partial<IWorkflowSettings>;
 	hasResolvableCredentials?: boolean;
+	tripSummary?: TripSummary;
 };
 
 export type VariableResource = BaseResource & {
@@ -355,6 +357,7 @@ export type WorkflowListItem = Omit<
 	resource?: 'workflow'; // only included if list may contain folders
 	description?: string;
 	hasResolvableCredentials?: boolean;
+	tripSummary?: TripSummary;
 };
 
 export type WorkflowListResource = WorkflowListItem | FolderListItem;
