@@ -13,6 +13,7 @@ import userEvent from '@testing-library/user-event';
 import { waitFor, within } from '@testing-library/vue';
 import { useSettingsStore } from '@/app/stores/settings.store';
 import { useProjectPages } from '@/features/collaboration/projects/composables/useProjectPages';
+import { useUIStore } from '@/app/stores/ui.store';
 import { useUsersStore } from '@/features/settings/users/users.store';
 import { mock } from 'vitest-mock-extended';
 import type { IUser } from '@n8n/rest-api-client';
@@ -49,6 +50,10 @@ vi.mock('@/features/collaboration/projects/composables/useProjectPages', () => (
 	}),
 }));
 
+const projectTabsSpy = vi.fn().mockReturnValue({
+	render: vi.fn(),
+});
+
 const ProjectCreateResourceStub = {
 	props: {
 		actions: Array,
@@ -71,27 +76,39 @@ const ProjectCreateResourceStub = {
 const renderComponent = createComponentRenderer(ProjectHeader, {
 	global: {
 		stubs: {
+			ProjectTabs: projectTabsSpy,
 			ProjectCreateResource: ProjectCreateResourceStub,
 		},
 	},
 });
 
+let route: ReturnType<typeof router.useRoute>;
 let projectsStore: ReturnType<typeof mockedStore<typeof useProjectsStore>>;
 let settingsStore: ReturnType<typeof mockedStore<typeof useSettingsStore>>;
+let uiStore: ReturnType<typeof mockedStore<typeof useUIStore>>;
 let projectPages: ReturnType<typeof useProjectPages>;
 let usersStore: ReturnType<typeof mockedStore<typeof useUsersStore>>;
 
 describe('ProjectHeader', () => {
 	beforeEach(() => {
 		createTestingPinia();
+		route = router.useRoute();
 		projectsStore = mockedStore(useProjectsStore);
 		settingsStore = mockedStore(useSettingsStore);
 		usersStore = mockedStore(useUsersStore);
+		uiStore = mockedStore(useUIStore);
 		projectPages = useProjectPages();
 
 		projectsStore.teamProjectsLimit = -1;
 		settingsStore.settings.folders = { enabled: false };
 		settingsStore.isDataTableFeatureEnabled = true;
+
+		// Setup default moduleTabs structure
+		uiStore.moduleTabs = {
+			shared: {},
+			overview: {},
+			project: {},
+		};
 	});
 
 	afterEach(() => {
@@ -209,6 +226,75 @@ describe('ProjectHeader', () => {
 		expect(getByTestId('project-subtitle')).toHaveTextContent(projectDescription);
 	});
 
+	it('should render ProjectTabs Settings if project is team project and user has update scope', () => {
+		route.params.projectId = '123';
+		projectsStore.currentProject = createTestProject({
+			scopes: ['project:update'],
+		});
+		renderComponent();
+
+		expect(projectTabsSpy).toHaveBeenCalledWith(
+			expect.objectContaining({
+				'show-settings': true,
+			}),
+			null,
+		);
+	});
+
+	it('should render ProjectTabs without Settings if no project update or externalSecretsProvider:read permission', () => {
+		route.params.projectId = '123';
+		projectsStore.currentProject = createTestProject({
+			scopes: ['project:read'],
+		});
+		renderComponent();
+
+		expect(projectTabsSpy).toHaveBeenCalledWith(
+			expect.objectContaining({
+				'show-settings': false,
+			}),
+			null,
+		);
+	});
+
+	it('should render ProjectTabs Settings if project editor has externalSecretsProvider:read scope', () => {
+		route.params.projectId = '123';
+		projectsStore.currentProject = createTestProject({
+			scopes: ['project:read', 'externalSecretsProvider:read', 'externalSecretsProvider:list'],
+		});
+		renderComponent();
+
+		expect(projectTabsSpy).toHaveBeenCalledWith(
+			expect.objectContaining({
+				'show-settings': true,
+			}),
+			null,
+		);
+	});
+
+	it('should render ProjectTabs without Settings if project is not team project', () => {
+		route.params.projectId = '123';
+		projectsStore.currentProject = createTestProject({
+			type: ProjectTypes.Personal,
+			scopes: ['project:update'],
+		});
+		renderComponent();
+
+		expect(projectTabsSpy).toHaveBeenCalledWith(
+			expect.objectContaining({
+				'show-settings': false,
+			}),
+			null,
+		);
+	});
+
+	it('should not render ProjectTabs on the Overview page', () => {
+		vi.spyOn(projectPages, 'isOverviewSubPage', 'get').mockReturnValue(true);
+
+		renderComponent();
+
+		expect(projectTabsSpy).not.toHaveBeenCalled();
+	});
+
 	it('should create a workflow', async () => {
 		const project = createTestProject({
 			scopes: ['workflow:create'],
@@ -292,6 +378,169 @@ describe('ProjectHeader', () => {
 		} as RouteLocationNormalizedLoadedGeneric);
 		const { queryByTestId } = renderComponent();
 		expect(queryByTestId('add-resource-buttons')).not.toBeInTheDocument();
+	});
+
+	describe('customProjectTabs', () => {
+		it('should pass tabs for shared page type when on shared sub page', () => {
+			vi.spyOn(projectPages, 'isSharedSubPage', 'get').mockReturnValue(true);
+			vi.spyOn(projectPages, 'isOverviewSubPage', 'get').mockReturnValue(false);
+
+			const mockTabs = [
+				{ value: 'shared-tab-1', label: 'Shared Tab 1' },
+				{ value: 'shared-tab-2', label: 'Shared Tab 2' },
+			];
+
+			uiStore.moduleTabs.shared = {
+				module1: mockTabs,
+				module2: [],
+			};
+
+			settingsStore.isModuleActive = vi
+				.fn()
+				.mockReturnValueOnce(true) // module1 is active
+				.mockReturnValueOnce(false); // module2 is inactive
+
+			renderComponent();
+
+			expect(projectTabsSpy).toHaveBeenCalledWith(
+				expect.objectContaining({
+					'additional-tabs': mockTabs,
+				}),
+				null,
+			);
+		});
+
+		it('should not render ProjectTabs for overview page type since the Overview page never shows tabs', () => {
+			vi.spyOn(projectPages, 'isSharedSubPage', 'get').mockReturnValue(false);
+			vi.spyOn(projectPages, 'isOverviewSubPage', 'get').mockReturnValue(true);
+
+			uiStore.moduleTabs.overview = {
+				overviewModule: [{ value: 'overview-tab-1', label: 'Overview Tab 1' }],
+			};
+
+			settingsStore.isModuleActive = vi.fn().mockReturnValue(true);
+
+			renderComponent();
+
+			expect(projectTabsSpy).not.toHaveBeenCalled();
+		});
+
+		it('should pass tabs for project page type when not on shared or overview sub pages', () => {
+			vi.spyOn(projectPages, 'isSharedSubPage', 'get').mockReturnValue(false);
+			vi.spyOn(projectPages, 'isOverviewSubPage', 'get').mockReturnValue(false);
+
+			const mockTabs = [
+				{ value: 'project-tab-1', label: 'Project Tab 1' },
+				{ value: 'project-tab-2', label: 'Project Tab 2' },
+			];
+
+			uiStore.moduleTabs.project = {
+				projectModule: mockTabs,
+			};
+
+			settingsStore.isModuleActive = vi.fn().mockReturnValue(true);
+
+			renderComponent();
+
+			expect(projectTabsSpy).toHaveBeenCalledWith(
+				expect.objectContaining({
+					'additional-tabs': mockTabs,
+				}),
+				null,
+			);
+		});
+
+		it('should filter out tabs from inactive modules', () => {
+			vi.spyOn(projectPages, 'isSharedSubPage', 'get').mockReturnValue(false);
+			vi.spyOn(projectPages, 'isOverviewSubPage', 'get').mockReturnValue(false);
+
+			const activeTabs = [{ value: 'active-tab', label: 'Active Tab' }];
+			const inactiveTabs = [{ value: 'inactive-tab', label: 'Inactive Tab' }];
+
+			uiStore.moduleTabs.project = {
+				activeModule: activeTabs,
+				inactiveModule: inactiveTabs,
+			};
+
+			settingsStore.isModuleActive = vi
+				.fn()
+				.mockImplementation((module: string) => module === 'activeModule');
+
+			renderComponent();
+
+			expect(projectTabsSpy).toHaveBeenCalledWith(
+				expect.objectContaining({
+					'additional-tabs': activeTabs,
+				}),
+				null,
+			);
+		});
+
+		it('should flatten tabs from multiple active modules', () => {
+			vi.spyOn(projectPages, 'isSharedSubPage', 'get').mockReturnValue(false);
+			vi.spyOn(projectPages, 'isOverviewSubPage', 'get').mockReturnValue(false);
+
+			const module1Tabs = [
+				{ value: 'module1-tab1', label: 'Module 1 Tab 1' },
+				{ value: 'module1-tab2', label: 'Module 1 Tab 2' },
+			];
+			const module2Tabs = [{ value: 'module2-tab1', label: 'Module 2 Tab 1' }];
+
+			uiStore.moduleTabs.project = {
+				module1: module1Tabs,
+				module2: module2Tabs,
+				module3: [], // Empty tabs array
+			};
+
+			settingsStore.isModuleActive = vi.fn().mockReturnValue(true);
+
+			renderComponent();
+
+			expect(projectTabsSpy).toHaveBeenCalledWith(
+				expect.objectContaining({
+					'additional-tabs': [...module1Tabs, ...module2Tabs],
+				}),
+				null,
+			);
+			expect(settingsStore.isModuleActive).toHaveBeenCalledTimes(4);
+		});
+
+		it('should pass empty array when no modules are active', () => {
+			vi.spyOn(projectPages, 'isSharedSubPage', 'get').mockReturnValue(false);
+			vi.spyOn(projectPages, 'isOverviewSubPage', 'get').mockReturnValue(false);
+
+			uiStore.moduleTabs.project = {
+				module1: [{ value: 'tab1', label: 'Tab 1' }],
+				module2: [{ value: 'tab2', label: 'Tab 2' }],
+			};
+
+			settingsStore.isModuleActive = vi.fn().mockReturnValue(false);
+
+			renderComponent();
+
+			expect(projectTabsSpy).toHaveBeenCalledWith(
+				expect.objectContaining({
+					'additional-tabs': [],
+				}),
+				null,
+			);
+		});
+
+		it('should pass empty array when no modules exist for the tab type', () => {
+			vi.spyOn(projectPages, 'isSharedSubPage', 'get').mockReturnValue(false);
+			vi.spyOn(projectPages, 'isOverviewSubPage', 'get').mockReturnValue(false);
+
+			uiStore.moduleTabs.project = {}; // No modules
+
+			renderComponent();
+
+			expect(projectTabsSpy).toHaveBeenCalledWith(
+				expect.objectContaining({
+					'additional-tabs': [],
+				}),
+				null,
+			);
+		});
 	});
 
 	describe('ProjectCreateResource', () => {

@@ -2,10 +2,11 @@
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useElementSize, useResizeObserver } from '@vueuse/core';
-import type { UserAction } from '@n8n/design-system';
+import type { TabOptions, UserAction } from '@n8n/design-system';
 import { useI18n } from '@n8n/i18n';
 import { ProjectTypes } from '../projects.types';
 import { useProjectsStore } from '../projects.store';
+import ProjectTabs from './ProjectTabs.vue';
 import ProjectIcon from './ProjectIcon.vue';
 import { getResourcePermissions } from '@n8n/permissions';
 import { EnterpriseEditionFeature, VIEWS } from '@/app/constants';
@@ -103,6 +104,9 @@ const projectName = computed(() => {
 	}
 });
 
+const projectPermissions = computed(
+	() => getResourcePermissions(projectsStore.currentProject?.scopes).project,
+);
 const projectVariablePermissions = computed(
 	() => getResourcePermissions(projectsStore.currentProject?.scopes).projectVariable,
 );
@@ -110,11 +114,39 @@ const globalVariablesPermissions = computed(
 	() => getResourcePermissions(usersStore.currentUser?.globalScopes).variable,
 );
 
+const externalSecretsProviderPermissions = computed(
+	() => getResourcePermissions(projectsStore.currentProject?.scopes).externalSecretsProvider,
+);
+
+const showSettings = computed(
+	() =>
+		!!route?.params?.projectId &&
+		(!!projectPermissions.value.update || !!externalSecretsProviderPermissions.value.read) &&
+		projectsStore.currentProject?.type === ProjectTypes.Team,
+);
+
 const showFolders = computed(() => {
 	return (
 		settingsStore.isFoldersFeatureEnabled &&
 		[VIEWS.PROJECTS_WORKFLOWS, VIEWS.PROJECTS_FOLDERS].includes(route.name as VIEWS)
 	);
+});
+
+const customProjectTabs = computed((): Array<TabOptions<string>> => {
+	// Determine the type of tab based on the current project page
+	let tabType: 'shared' | 'overview' | 'project';
+	if (projectPages.isSharedSubPage) {
+		tabType = 'shared';
+	} else if (projectPages.isOverviewSubPage) {
+		tabType = 'overview';
+	} else {
+		tabType = 'project';
+	}
+	// Only pick up tabs from active modules
+	const activeModules = Object.keys(uiStore.moduleTabs[tabType]).filter(
+		settingsStore.isModuleActive,
+	);
+	return activeModules.flatMap((module) => uiStore.moduleTabs[tabType][module]);
 });
 
 const ACTION_TYPES = {
@@ -355,6 +387,16 @@ const actions: Record<ActionTypes, (projectId: string, source: CreateSource) => 
 	},
 } as const;
 
+const pageType = computed(() => {
+	if (projectPages.isSharedSubPage) {
+		return 'shared';
+	} else if (projectPages.isOverviewSubPage) {
+		return 'overview';
+	} else {
+		return 'project';
+	}
+});
+
 const sectionDescription = computed(() => {
 	if (projectPages.isSharedSubPage) {
 		return i18n.baseText('projects.header.shared.subtitle');
@@ -491,6 +533,14 @@ const onSelect = (action: string, source: CreateSource) => {
 			</div>
 		</div>
 		<slot></slot>
+		<div v-if="!projectPages.isOverviewSubPage" :class="$style.actions">
+			<ProjectTabs
+				:page-type="pageType"
+				:show-executions="!projectPages.isSharedSubPage"
+				:show-settings="showSettings"
+				:additional-tabs="customProjectTabs"
+			/>
+		</div>
 	</div>
 </template>
 
@@ -505,6 +555,10 @@ const onSelect = (action: string, source: CreateSource) => {
 .projectDetails {
 	display: flex;
 	align-items: center;
+}
+
+.actions {
+	padding: var(--spacing--2xs) 0 var(--spacing--xs);
 }
 
 .projectDescriptionWrapper {
