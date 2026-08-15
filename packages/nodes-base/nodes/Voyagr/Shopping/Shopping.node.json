@@ -1,0 +1,1 @@
+{ "node": "n8n-nodes-base.shopping", "nodeVersion": "1.0", "codexVersion": "1.0", "categories": ["Core Nodes"], "subcategories": { "Core Nodes": ["Shopping"] }, "resources": { "primaryDocumentation": [] }, "alias": ["Shopping", "Market", "Mall", "Souvenir", "Store"] }

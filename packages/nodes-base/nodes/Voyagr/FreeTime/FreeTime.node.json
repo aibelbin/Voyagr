@@ -1,0 +1,1 @@
+{ "node": "n8n-nodes-base.freeTime", "nodeVersion": "1.0", "codexVersion": "1.0", "categories": ["Core Nodes"], "subcategories": { "Core Nodes": ["Rest & Free Time"] }, "resources": { "primaryDocumentation": [] }, "alias": ["Free", "Rest", "Relax", "Break", "Leisure"] }

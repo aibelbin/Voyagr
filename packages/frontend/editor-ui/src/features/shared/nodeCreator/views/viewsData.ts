@@ -406,15 +406,15 @@ export function TriggerView() {
 		subtitle: i18n.baseText('nodeCreator.triggerHelperPanel.selectATriggerDescription'),
 		items: [
 			{
-				key: MANUAL_TRIGGER_NODE_TYPE,
+				key: 'n8n-nodes-base.tripStart',
 				type: 'node',
 				category: [CORE_NODES_CATEGORY],
 				properties: {
 					group: [],
-					name: MANUAL_TRIGGER_NODE_TYPE,
-					displayName: i18n.baseText('nodeCreator.triggerHelperPanel.manualTriggerDisplayName'),
-					description: i18n.baseText('nodeCreator.triggerHelperPanel.manualTriggerDescription'),
-					icon: 'fa:mouse-pointer',
+					name: 'n8n-nodes-base.tripStart',
+					displayName: 'Start Trip',
+					description: 'The starting point of your itinerary',
+					icon: 'fa:paper-plane',
 				},
 			},
 		],
@@ -462,32 +462,28 @@ export function RegularView(nodes: SimplifiedNodeType[]) {
 				category: CORE_NODES_CATEGORY,
 				properties: { title: 'Travel Modes', icon: 'send' },
 			},
+			{
+				type: 'subcategory',
+				key: 'Experiences',
+				category: CORE_NODES_CATEGORY,
+				properties: { title: 'Experiences', icon: 'sparkles' },
+			},
+			{
+				type: 'subcategory',
+				key: 'Shopping',
+				category: CORE_NODES_CATEGORY,
+				properties: { title: 'Shopping', icon: 'gift' },
+			},
+			{
+				type: 'subcategory',
+				key: 'Rest & Free Time',
+				category: CORE_NODES_CATEGORY,
+				properties: { title: 'Rest & Free Time', icon: 'sun' },
+			},
 		],
 	};
 
-	const hasAINodes = (nodes ?? []).some((node) => node.codex?.categories?.includes(AI_SUBCATEGORY));
-	if (hasAINodes)
-		view.items.unshift({
-			key: AI_NODE_CREATOR_VIEW,
-			type: 'view',
-			properties: {
-				title: i18n.baseText('nodeCreator.aiPanel.langchainAiNodes'),
-				icon: 'robot',
-				description: i18n.baseText('nodeCreator.aiPanel.nodesForAi'),
-				borderless: true,
-			},
-		} as NodeViewItem);
-
-	view.items.push({
-		key: TRIGGER_NODE_CREATOR_VIEW,
-		type: 'view',
-		properties: {
-			title: i18n.baseText('nodeCreator.triggerHelperPanel.addAnotherTrigger'),
-			icon: 'bolt-filled',
-			description: i18n.baseText('nodeCreator.triggerHelperPanel.addAnotherTriggerDescription'),
-		},
-	});
-
+	// Voyagr: travel-only palette — no AI discovery tile, no "add another trigger".
 	return view;
 }
 

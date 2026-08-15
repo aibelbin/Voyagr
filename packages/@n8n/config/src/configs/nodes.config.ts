@@ -31,7 +31,7 @@ export class NodesConfig {
 	 */
 	@Env('NODES_INCLUDE')
 	include: JsonStringArray = new JsonStringArray(
-		'["n8n-nodes-base.manualTrigger","n8n-nodes-base.stickyNote","n8n-nodes-base.hotel","n8n-nodes-base.touristDestination","n8n-nodes-base.restaurant","n8n-nodes-base.flight","n8n-nodes-base.train","n8n-nodes-base.carRental"]',
+		'["n8n-nodes-base.tripStart","n8n-nodes-base.stickyNote","n8n-nodes-base.hotel","n8n-nodes-base.touristDestination","n8n-nodes-base.restaurant","n8n-nodes-base.flight","n8n-nodes-base.train","n8n-nodes-base.carRental","n8n-nodes-base.activity","n8n-nodes-base.cafe","n8n-nodes-base.bus","n8n-nodes-base.ferry","n8n-nodes-base.shopping","n8n-nodes-base.freeTime"]',
 	);
 
 	/**
