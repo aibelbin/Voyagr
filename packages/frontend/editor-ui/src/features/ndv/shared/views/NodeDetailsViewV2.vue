@@ -48,6 +48,8 @@ import { nodeViewEventBus } from '@/app/event-bus';
 import { N8nResizeWrapper } from '@n8n/design-system';
 import NDVFloatingNodes from '@/features/ndv/panel/components/NDVFloatingNodes.vue';
 import { useNodeIconSource } from '@/app/composables/useNodeIconSource';
+import PlacesPanel from '@/features/voyagr/places/components/PlacesPanel.vue';
+import { usePlacesPanel } from '@/features/voyagr/places/usePlacesPanel';
 const emit = defineEmits<{
 	valueChanged: [parameterData: IUpdateInformation];
 	switchSelectedNode: [nodeTypeName: string];
@@ -119,6 +121,13 @@ const activeNodeType = computed(() => {
 	}
 	return null;
 });
+
+// Voyagr: real-place suggestions for the travel nodes. `placeKind` is null for
+// every other node type, which is what keeps the panel out of the way.
+const { placeKind, tripDestination, pickPlace } = usePlacesPanel(
+	activeNode,
+	computed(() => workflowDocumentStore?.value?.allNodes ?? []),
+);
 
 const { docsUrl } = useNodeDocsUrl({ nodeType: activeNodeType });
 
@@ -756,6 +765,13 @@ onBeforeUnmount(() => {
 					@rename="onRename"
 				/>
 				<main :class="$style.main">
+					<PlacesPanel
+						v-if="placeKind"
+						:class="$style.placesPanel"
+						:kind="placeKind"
+						:destination="tripDestination"
+						@pick="pickPlace"
+					/>
 					<div
 						v-if="hasInputPanel"
 						:class="[$style.column, $style.dataColumn]"
@@ -940,6 +956,14 @@ onBeforeUnmount(() => {
 
 .dataColumn {
 	overflow-x: auto;
+}
+
+// The suggestions panel keeps its own width; the percentage-sized columns
+// beside it shrink to make room, and it takes over the corner rounding that
+// `.column:first-child` used to own.
+.placesPanel {
+	flex: 0 0 auto;
+	border-bottom-left-radius: var(--radius--lg);
 }
 
 .header {
