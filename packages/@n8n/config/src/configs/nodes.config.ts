@@ -24,9 +24,15 @@ class JsonStringArray extends Array<string> {
 
 @Config
 export class NodesConfig {
-	/** Node types to load. If empty, all available nodes are loaded. Example: `["n8n-nodes-base.hackerNews"]`. */
+	/**
+	 * Node types to load. If empty, all available nodes are loaded.
+	 * Voyagr: default to travel nodes only (Manual Trigger + Sticky Note + travel nodes).
+	 * Override with the NODES_INCLUDE env var (JSON array) or set it to `[]` to load all.
+	 */
 	@Env('NODES_INCLUDE')
-	include: JsonStringArray = [];
+	include: JsonStringArray = new JsonStringArray(
+		'["n8n-nodes-base.manualTrigger","n8n-nodes-base.stickyNote","n8n-nodes-base.hotel","n8n-nodes-base.touristDestination","n8n-nodes-base.restaurant","n8n-nodes-base.flight","n8n-nodes-base.train","n8n-nodes-base.carRental"]',
+	);
 
 	/**
 	 * Node types to exclude from loading. Default excludes `ExecuteCommand` and `LocalFileTrigger` for security.
