@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import Canvas from '@/features/workflows/canvas/components/Canvas.vue';
 import BudgetBar from './BudgetBar.vue';
-import NodeDrawer from './NodeDrawer.vue';
+import NodeSettingsPanel from './NodeSettingsPanel.vue';
 import { mapItineraryToCanvas } from './mapping';
 import { useVoyagrTripStore } from './trip.store';
 
@@ -32,7 +32,7 @@ function onSelected(id?: string) {
         :key-bindings="false"
         @update:node:selected="onSelected"
       />
-      <NodeDrawer />
+      <NodeSettingsPanel />
     </div>
   </div>
 </template>
