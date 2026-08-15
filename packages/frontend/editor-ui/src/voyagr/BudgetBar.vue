@@ -10,9 +10,9 @@ const pct = computed(() =>
 );
 
 const STATE_COLOR: Record<BudgetState, string> = {
-  under: '#16a34a',
-  near: '#d97706',
-  over: '#dc2626',
+  under: 'var(--color-success)',
+  near: 'var(--color-warning)',
+  over: 'var(--color-danger)',
 };
 const STATE_LABEL: Record<BudgetState, string> = {
   under: 'under budget',
@@ -42,27 +42,38 @@ const fmt = (n: number) => n.toLocaleString();
 .budget-bar {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--spacing-s, 16px);
   height: 52px;
-  padding: 0 16px;
-  background: #fff;
-  border-bottom: 1px solid #e2e2e6;
-  font-size: 13px;
+  padding: 0 var(--spacing-s, 16px);
+  background: var(--color-background-xlight, #fff);
+  border-bottom: var(--border-base, 1px solid var(--color-foreground-base, #dbdfe7));
+  font-size: var(--font-size-2xs, 13px);
+  color: var(--color-text-base, #7d7d87);
   flex-shrink: 0;
 }
-.title { font-weight: 600; color: #1e1e24; }
-.figures { display: flex; align-items: baseline; gap: 8px; }
-.total { font-weight: 600; color: #1e1e24; }
-.target { color: #9a9aa2; }
-.state { font-weight: 600; }
+.title {
+  font-weight: var(--font-weight-bold, 600);
+  color: var(--color-text-dark, #2d2e3a);
+}
+.figures { display: flex; align-items: baseline; gap: var(--spacing-3xs, 8px); }
+.total {
+  font-weight: var(--font-weight-bold, 600);
+  color: var(--color-text-dark, #2d2e3a);
+}
+.target { color: var(--color-text-light, #9a9aa2); }
+.state { font-weight: var(--font-weight-bold, 600); }
 .meter {
   flex: 1;
   max-width: 280px;
   height: 6px;
-  background: #ececef;
-  border-radius: 3px;
+  background: var(--color-foreground-base, #ececef);
+  border-radius: var(--border-radius-base, 4px);
   overflow: hidden;
 }
 .fill { height: 100%; transition: width 0.2s ease; }
-.disclaimer { margin-left: auto; color: #9a9aa2; font-size: 11px; }
+.disclaimer {
+  margin-left: auto;
+  color: var(--color-text-light, #9a9aa2);
+  font-size: var(--font-size-3xs, 11px);
+}
 </style>
