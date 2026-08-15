@@ -307,23 +307,25 @@ const tripMeta = computed<TripMetaPart[]>(() => {
 	const parts: TripMetaPart[] = [];
 
 	if (summary.startDate) {
+		const formattedStart = formatTripDate(summary.startDate);
+		const formattedEnd = summary.endDate ? formatTripDate(summary.endDate) : null;
+		const isSameDayRange = formattedEnd === formattedStart;
+
 		parts.push({
 			icon: 'calendar',
-			text: summary.endDate
-				? `${formatTripDate(summary.startDate)} – ${formatTripDate(summary.endDate)}`
-				: formatTripDate(summary.startDate),
+			text: formattedEnd && !isSameDayRange ? `${formattedStart} – ${formattedEnd}` : formattedStart,
 		});
 
 		if (summary.endDate) {
-			const days = Math.round(
+			const nights = Math.round(
 				(new Date(summary.endDate).getTime() - new Date(summary.startDate).getTime()) / 86_400_000,
 			);
-			if (days > 0) {
+			if (nights > 0) {
 				parts.push({
 					text:
-						days === 1
-							? locale.baseText('workflows.item.trip.day')
-							: locale.baseText('workflows.item.trip.days', { interpolate: { count: days } }),
+						nights === 1
+							? locale.baseText('workflows.item.trip.night')
+							: locale.baseText('workflows.item.trip.nights', { interpolate: { count: nights } }),
 				});
 			}
 		}
@@ -691,7 +693,7 @@ const tags = computed(
 		</template>
 		<div :class="$style.cardDescription">
 			<template v-if="tripMeta.length">
-				<template v-for="(part, index) in tripMeta" :key="part.text">
+				<template v-for="(part, index) in tripMeta" :key="index">
 					<span v-if="index > 0" :class="$style.divider">|</span>
 					<span :class="$style.tripMetaPart">
 						<N8nIcon v-if="part.icon" :icon="part.icon" size="small" />
