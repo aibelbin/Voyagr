@@ -48,6 +48,7 @@ import { TagsConfig } from './configs/tags.config';
 import { TemplatesConfig } from './configs/templates.config';
 import { UserManagementConfig } from './configs/user-management.config';
 import { VersionNotificationsConfig } from './configs/version-notifications.config';
+import { VoyagrConfig } from './configs/voyagr.config';
 import { WorkflowHistoryCompactionConfig } from './configs/workflow-history-compaction.config';
 import { WorkflowHistoryConfig } from './configs/workflow-history.config';
 import { WorkflowsConfig } from './configs/workflows.config';
@@ -307,4 +308,7 @@ export class GlobalConfig {
 
 	@Nested
 	instanceSettingsLoader: InstanceSettingsLoaderConfig;
+
+	@Nested
+	voyagr: VoyagrConfig;
 }
