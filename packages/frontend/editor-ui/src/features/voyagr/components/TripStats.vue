@@ -11,6 +11,10 @@ const i18n = useI18n();
 
 const DAY_IN_MS = 86_400_000;
 
+/** Compare whole calendar days in the viewer's timezone, matching how trip cards format dates. */
+const startOfDay = (value: Date) =>
+	new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
+
 const summaries = computed(() =>
 	props.resources.flatMap((resource) =>
 		resource.resourceType === 'workflow' && resource.tripSummary ? [resource.tripSummary] : [],
@@ -38,16 +42,16 @@ const budget = computed(() => {
 });
 
 const nextDeparture = computed(() => {
-	const now = Date.now();
+	const today = startOfDay(new Date());
 	const upcoming = summaries.value
-		.map((summary) => (summary.startDate ? new Date(summary.startDate).getTime() : Number.NaN))
-		.filter((time) => !Number.isNaN(time) && time >= now)
+		.flatMap((summary) => (summary.startDate ? [startOfDay(new Date(summary.startDate))] : []))
+		.filter((day) => !Number.isNaN(day) && day >= today)
 		.sort((a, b) => a - b);
 
 	if (upcoming.length === 0) return i18n.baseText('trips.stats.empty');
 
-	const days = Math.ceil((upcoming[0] - now) / DAY_IN_MS);
-	if (days <= 0) return i18n.baseText('trips.stats.next.today');
+	const days = Math.round((upcoming[0] - today) / DAY_IN_MS);
+	if (days === 0) return i18n.baseText('trips.stats.next.today');
 	if (days === 1) return i18n.baseText('trips.stats.next.tomorrow');
 
 	return i18n.baseText('trips.stats.next.inDays', { interpolate: { count: days } });
@@ -86,7 +90,7 @@ const stats = computed(() => [
 	align-items: stretch;
 	justify-content: space-evenly;
 	border: var(--border);
-	border-radius: 6px;
+	border-radius: var(--radius--2xs);
 	list-style: none;
 	overflow-x: auto;
 
