@@ -70,7 +70,7 @@ async function onSearch(): Promise<void> {
 	gap: var(--spacing--xs);
 	width: 320px;
 	height: 100%;
-	padding: var(--spacing--s);
+	padding: var(--spacing--sm);
 	overflow-y: auto;
 	border-right: var(--border);
 	background-color: var(--background--surface);
