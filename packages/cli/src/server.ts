@@ -71,6 +71,7 @@ import '@/modules/workflow-index/workflow-dependency.controller';
 import '@/webhooks/test-webhooks.controller';
 import '@/webhooks/webhooks.controller';
 import '@/voyagr/places/places.controller';
+import '@/voyagr/generator/generator.controller';
 
 import { ChatServer } from './chat/chat-server';
 import { MfaService } from './mfa/mfa.service';
