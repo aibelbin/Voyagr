@@ -79,6 +79,18 @@ Plus **Start Trip** (trigger) and **Sticky Note** (annotations).
   `WorkflowService.getMany()` via `workflowRepository.findNodesByIds()`; the
   list query itself still omits `nodes`.
 
+**Place connectors:**
+- Travel nodes suggest real places in a left panel — photo, rating, price tier,
+  neighbourhood — and fill themselves in when one is picked.
+- Foursquare behind a `PlaceSearchProvider` interface
+  (`packages/cli/src/voyagr/places/`), with keyless Nominatim for geocoding and
+  Wikipedia for landmark photos. Results are cached in-memory with a TTL,
+  because one operator key on a free tier serves every user.
+- Key is `VOYAGR_PLACES_KEY` in deployment env. Users never see it — Voyagr is
+  a consumer product, not a developer tool.
+- Start Trip gained `destination`; the six place nodes gained hidden
+  `placeId` / `rating` / `priceTier` / `photoUrl` fields.
+
 ---
 
 ## 3. Where things live (key files)
@@ -145,6 +157,11 @@ Plus **Start Trip** (trigger) and **Sticky Note** (annotations).
 - **`dateTime` node params are local-time strings.** `ParameterInput.vue` stores them as `YYYY-MM-DDTHH:mm:ss` with no offset, which `new Date()` parses as local time. Setting `typeOptions.dateOnly` switches the format to `YYYY-MM-DD`, which parses as **UTC** midnight and shifts the calendar day in negative-offset timezones. Start Trip deliberately does not set it.
 - **Renaming an i18n key needs a rebuild.** `BaseTextKey` is derived from `@n8n/i18n`'s built `dist`, so run `pnpm --filter @n8n/i18n build` after editing `en.json` or typecheck won't see the change.
 - **Node 26 shadows jsdom's `localStorage`.** `globalThis.localStorage` is native and undefined without a flag, so editor-ui tests that touch it need `NODE_OPTIONS="--localstorage-file=/tmp/voyagr-ls"`.
+- **Place suggestions degrade silently.** No key, spent quota, or an unreachable
+  provider all return `[]` from `/rest/voyagr/places` and render one quiet empty
+  state. Never surface a provider error to a traveller.
+- **`@Query` needs a zod DTO class, not a TS type.** `controller.registry.ts` only injects a `query`/`body` argument when its `design:paramtypes` metadata has a `safeParse`. A bare inline object type has no runtime representation, so the argument arrives `undefined` and destructuring it throws on the first request. Declare a `Z.class` DTO (see `places-query.dto.ts`).
+- **Undefined CSS variables fail silently.** The spacing scale is `--spacing--sm`, not `--spacing--s`; a typo'd token collapses the property to nothing with no build or lint error. Check names against `@n8n/design-system/src/css/_primitives.scss`.
 
 ---
 
