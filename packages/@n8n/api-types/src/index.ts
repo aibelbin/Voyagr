@@ -1,6 +1,7 @@
 export { Z, type ZodClass } from './zod-class';
 export type * from './datetime';
 export type * from './places';
+export type * from './trip-generation';
 export type * from './trip-summary';
 export * from './dto';
 export type * from './push';

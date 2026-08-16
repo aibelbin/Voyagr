@@ -9,4 +9,12 @@ export class VoyagrConfig {
 	 */
 	@Env('VOYAGR_PLACES_KEY')
 	placesKey: string = '';
+
+	/**
+	 * Groq API key used to generate trip itineraries. Operator-owned —
+	 * Voyagr users never see or enter it. Generation is disabled gracefully
+	 * when this is empty.
+	 */
+	@Env('VOYAGR_GROQ_KEY')
+	groqKey: string = '';
 }
