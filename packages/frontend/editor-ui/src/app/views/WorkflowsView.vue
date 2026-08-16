@@ -51,6 +51,7 @@ import EmptyStateLayout from '@/app/components/layouts/EmptyStateLayout.vue';
 import { useReadyToRunStore } from '@/features/workflows/readyToRun/stores/readyToRun.store';
 import { useEmptyStateDetection } from '@/features/workflows/readyToRun/composables/useEmptyStateDetection';
 import TripStats from '@/features/voyagr/components/TripStats.vue';
+import PlanWithAiDialog from '@/features/voyagr/generator/components/PlanWithAiDialog.vue';
 import { useWorkflowsEmptyState } from '@/features/workflows/composables/useWorkflowsEmptyState';
 import type {
 	BaseFilters,
@@ -599,6 +600,9 @@ const canUserRegisterCommunityPlus = computed(
 const showRegisteredCommunityCTA = computed(
 	() => isSelfHostedDeployment.value && !foldersEnabled.value && canUserRegisterCommunityPlus.value,
 );
+
+/** Controls the five-question form that generates a trip. */
+const planWithAiOpen = ref(false);
 
 const showAIStarterCollectionCallout = computed(() => {
 	return (
@@ -2207,8 +2211,16 @@ const onNameSubmit = async (name: string) => {
 				/>
 			</ProjectHeader>
 		</template>
-		<template v-if="showRegisteredCommunityCTA" #add-button>
-			<N8nTooltip placement="top">
+		<template #add-button>
+			<N8nButton
+				variant="outline"
+				size="medium"
+				icon="sparkles"
+				:label="i18n.baseText('voyagr.generate.open')"
+				data-test-id="plan-with-ai-button"
+				@click="planWithAiOpen = true"
+			/>
+			<N8nTooltip v-if="showRegisteredCommunityCTA" placement="top">
 				<template #content>
 					<span>
 						{{
@@ -2445,6 +2457,16 @@ const onNameSubmit = async (name: string) => {
 					"
 					@click:button="addWorkflow"
 				/>
+				<div :class="$style.emptyPlanWithAi">
+					<N8nButton
+						variant="outline"
+						size="medium"
+						icon="sparkles"
+						:label="i18n.baseText('voyagr.generate.open')"
+						data-test-id="plan-with-ai-button-empty"
+						@click="planWithAiOpen = true"
+					/>
+				</div>
 				<TemplateRecommendationV3 v-if="showTemplateRecommendationV3" />
 				<TemplateRecommendationV2 v-else-if="showTemplateRecommendationV2" />
 			</div>
@@ -2548,9 +2570,17 @@ const onNameSubmit = async (name: string) => {
 			</div>
 		</template>
 	</ResourcesListLayout>
+
+	<PlanWithAiDialog v-model:open="planWithAiOpen" />
 </template>
 
 <style lang="scss" module>
+.emptyPlanWithAi {
+	display: flex;
+	justify-content: center;
+	margin-top: var(--spacing--sm);
+}
+
 .easy-ai-workflow-callout {
 	// Make the callout padding in line with workflow cards
 	margin-top: var(--spacing--xs);
