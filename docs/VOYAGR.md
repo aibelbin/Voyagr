@@ -82,12 +82,17 @@ Plus **Start Trip** (trigger) and **Sticky Note** (annotations).
 **Place connectors:**
 - Travel nodes suggest real places in a left panel — photo, rating, price tier,
   neighbourhood — and fill themselves in when one is picked.
-- Foursquare behind a `PlaceSearchProvider` interface
+- Google Places (New) behind a `PlaceSearchProvider` interface
   (`packages/cli/src/voyagr/places/`), with keyless Nominatim for geocoding and
-  Wikipedia for landmark photos. Results are cached in-memory with a TTL,
-  because one operator key on a free tier serves every user.
-- Key is `VOYAGR_PLACES_KEY` in deployment env. Users never see it — Voyagr is
-  a consumer product, not a developer tool.
+  Wikipedia for landmark photos. Nearby Search for browsing a category, Text
+  Search when the traveller types a query. Results are cached in-memory for
+  only 15 minutes — Google's terms exempt just the place id from their
+  no-caching rule, so this window absorbs one planning session rather than
+  building a local copy of their data.
+- Key is `VOYAGR_GOOGLE_PLACES_KEY` in deployment env. Users never see it —
+  Voyagr is a consumer product, not a developer tool. `FoursquareProvider` is
+  kept as a second working implementation of the interface but nothing wires
+  it; its free tier never covered ratings/price/photos, which are billed fields.
 - Start Trip gained `destination`; the six place nodes gained hidden
   `placeId` / `rating` / `priceTier` / `photoUrl` fields.
 
@@ -176,6 +181,22 @@ Plus **Start Trip** (trigger) and **Sticky Note** (annotations).
 - **Place suggestions degrade silently.** No key, spent quota, or an unreachable
   provider all return `[]` from `/rest/voyagr/places` and render one quiet empty
   state. Never surface a provider error to a traveller.
+- **`.env` must live in `packages/cli/bin/`, not the repo root.** `pnpm start`
+  `cd`s into `packages/cli/bin` before running the server, and dotenv reads
+  `.env` from the working directory — so a root `.env` is silently ignored and
+  every key reads as empty. There is a gitignored symlink at
+  `packages/cli/bin/.env -> ../../../.env`; recreate it after a clean checkout
+  or `git clean`. The failure mode is indistinguishable from a bad key: the
+  feature just degrades to its empty state.
+- **Google's photo URL carries the API key as a query parameter.** Never put it
+  in an `<img src>` — that publishes an operator's billable key to every
+  browser. Photos go through `/rest/voyagr/places/photo`, which resolves the
+  real image URL server-side with `skipHttpRedirect=true` and redirects. The
+  `name` parameter is regex-validated before being interpolated into an
+  outbound URL.
+- **Google rarely returns `priceLevel` for hotels.** Cards show a rating and
+  neighbourhood but usually no price tier for lodging; restaurants and cafes do
+  carry it. Not a bug.
 - **`@Query` needs a zod DTO class, not a TS type.** `controller.registry.ts` only injects a `query`/`body` argument when its `design:paramtypes` metadata has a `safeParse`. A bare inline object type has no runtime representation, so the argument arrives `undefined` and destructuring it throws on the first request. Declare a `Z.class` DTO (see `places-query.dto.ts`).
 - **Undefined CSS variables fail silently.** The spacing scale is `--spacing--sm`, not `--spacing--s`; a typo'd token collapses the property to nothing with no build or lint error. Check names against `@n8n/design-system/src/css/_primitives.scss`.
 - **Groq free tier is 8,000 tokens/min, input and output combined.** That is the real constraint on trip generation, not context size. The prompt sends a trimmed place list (id, name, kind, rating, price tier — no blurbs or URLs) and caps completion tokens; worst case measures ~6.4k.
