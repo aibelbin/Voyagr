@@ -4,9 +4,9 @@
 
 **Goal:** A traveller fills in a five-field form and gets three complete itineraries drawn as parallel branches on one canvas, ready to compare, keep and edit.
 
-**Architecture:** The form's answers pick a candidate pool of *real* places from the connector layer, then one Claude call selects and sequences them into three combinations — choosing **by provider id**, never by writing a place name, so a hallucinated hotel is structurally impossible. A pure materialiser turns the result into n8n workflow JSON: one Start Trip node fanning out to three branches.
+**Architecture:** The form's answers pick a candidate pool of *real* places from the connector layer, then one model call selects and sequences them into three combinations — choosing **by provider id**, never by writing a place name, so a hallucinated hotel is structurally impossible. A pure materialiser turns the result into n8n workflow JSON: one Start Trip node fanning out to three branches.
 
-**Tech Stack:** TypeScript, `@anthropic-ai/sdk`, structured outputs with zod, `@n8n/decorators` REST controllers, `@n8n/di`, Vue 3, Vitest.
+**Tech Stack:** TypeScript, the `openai` SDK pointed at Groq's OpenAI-compatible endpoint, strict JSON-schema structured outputs, `@n8n/decorators` REST controllers, `@n8n/di`, Vue 3, Vitest.
 
 Spec: `docs/superpowers/specs/2026-08-15-voyagr-ai-trip-generator-design.md`
 **Prerequisite:** `docs/superpowers/plans/2026-08-15-voyagr-place-connectors.md` must be complete — this plan consumes its provider layer, its config class, and its node parameters.
@@ -27,7 +27,12 @@ Project background: `docs/VOYAGR.md`
 - Frontend: CSS variables never hardcoded px; reuse `@n8n/design-system`; icons from `updatedIconSet`; single-value `data-test-id`. **Invoke the `n8n:design-system` skill before writing any Vue or SCSS.**
 - `packages/frontend/editor-ui/src/features/shared/nodeCreator/views/viewsData.ts` has ~34 **pre-existing** typecheck/lint errors. Out of scope.
 - Node 26's native `globalThis.localStorage` shadows jsdom's. editor-ui tests touching it need `NODE_OPTIONS="--localstorage-file=/tmp/voyagr-ls"`.
-- **Model is `claude-opus-5`.** Do not substitute a different model. Thinking is on by default on this model; leave it on.
+- **Model is `openai/gpt-oss-120b`, served by Groq's free tier** via the OpenAI-compatible endpoint `https://api.groq.com/openai/v1`. Do not substitute a different model without checking the constraints below — this choice is load-bearing:
+  - Groq supports `response_format: { type: 'json_schema', ..., strict: true }` **only** on the `gpt-oss` family. Every other Groq model (Llama, Qwen, etc.) is loose `json_object` mode or nothing, which would let the model invent a place name instead of returning a provider id. Strict mode is the mechanism that makes hallucination structurally impossible here, so it is not optional.
+  - Strict mode requires: `additionalProperties: false` on **every** object, and **every** property listed in `required`. Optional fields must be modelled as a `["type", "null"]` union, not omitted. A schema that violates this is rejected by the API.
+  - Free-tier limits are **30 requests/min and 8,000 tokens/min**. That token ceiling is tight and shapes the design: keep the candidate pool prompt lean (id, name, kind, rating, price tier only — no blurbs, no URLs) and keep `max_tokens` modest. One generation must fit inside 8k tokens in and out combined.
+  - Structured outputs cannot be combined with streaming or tool use on Groq. This plan uses neither.
+- **Fallback model** if `openai/gpt-oss-120b` proves unreliable or rate-limited: `openai/gpt-oss-20b`. Same 131k context, same strict-schema guarantee, same free-tier limits — smaller and faster, likely weaker at multi-day sequencing.
 - **Never make a live API call in a test.** The one model-facing test uses a stubbed response.
 - **Testing is deliberately minimal by explicit instruction.** Two small unit-test files in this whole plan, and one visual verification at the very end.
 
@@ -50,7 +55,7 @@ Every one of the six also has hidden `placeId`, `rating`, `priceTier`, `photoUrl
 
 | Group | Tasks | Depends on |
 |---|---|---|
-| A | Task 1 (types, config, dependency) **and** Task 2 (materialiser) | — |
+| A | Task 1 (types + config) **and** Task 2 (materialiser) | — |
 | B | Task 3 (candidate pool) **and** Task 5 (form UI) | Group A |
 | C | Task 4 (model call + endpoint) | Tasks 1–3 |
 | D | Task 6 (verification) | everything |
@@ -59,17 +64,16 @@ Task 2 is a pure function with no imports from Tasks 1 or 3 beyond shared types,
 
 ---
 
-### Task 1: Types, config and the SDK dependency
+### Task 1: Types and config
 
 **Files:**
 - Create: `packages/@n8n/api-types/src/trip-generation.ts`
 - Modify: `packages/@n8n/api-types/src/index.ts`
 - Modify: `packages/@n8n/config/src/configs/voyagr.config.ts`
-- Modify: `packages/cli/package.json`
 
 **Interfaces:**
 - Consumes: `PlaceKind` from `@n8n/api-types` (prerequisite plan).
-- Produces: `TripTastes`, `TripGenerationRequest`, `GeneratedStop`, `GeneratedTripOption` exported from `@n8n/api-types`; `globalConfig.voyagr.anthropicKey`; `@anthropic-ai/sdk` available in `packages/cli`.
+- Produces: `TripTastes`, `TripGenerationRequest`, `GeneratedStop`, `GeneratedTripOption` exported from `@n8n/api-types`; `globalConfig.voyagr.groqKey`.
 
 - [ ] **Step 1: Add the shared types**
 
@@ -129,33 +133,32 @@ In `packages/@n8n/config/src/configs/voyagr.config.ts`, add a second property to
 
 ```ts
 	/**
-	 * Anthropic API key used to generate trip itineraries. Operator-owned —
+	 * Groq API key used to generate trip itineraries. Operator-owned —
 	 * Voyagr users never see or enter it. Generation is disabled gracefully
 	 * when this is empty.
 	 */
-	@Env('VOYAGR_ANTHROPIC_KEY')
-	anthropicKey: string = '';
+	@Env('VOYAGR_GROQ_KEY')
+	groqKey: string = '';
 ```
 
-- [ ] **Step 4: Add the SDK dependency**
+- [ ] **Step 4: Confirm the SDK is already available — do NOT install anything**
 
-In `packages/cli/package.json`, add to `dependencies` (keep the block alphabetically sorted):
+`packages/cli/package.json` **already** declares both dependencies this plan needs:
 
-```json
-		"@anthropic-ai/sdk": "^0.68.0",
-```
+- `"openai": "catalog:"` — the client, pointed at Groq's OpenAI-compatible endpoint
+- `"zod-to-json-schema": "catalog:"` — to derive the strict JSON schema from the zod schema
 
-Then from the repo root:
+So there is **no dependency to add and no install to run.** Do not run `pnpm install` in any form — a bare install has corrupted `package.json` files in this repo before, and this plan no longer needs one.
+
+Confirm both are present and note the resolved versions in your report:
 
 ```bash
 cd /Users/aibelbinzacariah/Documents/Code/Voyagr
-CI=1 pnpm install --no-frozen-lockfile
-git diff --stat pnpm-lock.yaml
+grep -nE '"(openai|zod-to-json-schema)"' packages/cli/package.json
+node -e "console.log('openai', require('openai/package.json').version)" 2>/dev/null || true
 ```
 
-Confirm the lockfile diff only adds `@anthropic-ai/sdk` and its transitive deps. If any `package.json` other than `packages/cli/package.json` changed, `git restore` it — a bare install has corrupted this repo before.
-
-If `^0.68.0` does not resolve, run `npm view @anthropic-ai/sdk version` and use the current major instead, noting the version you used in your report.
+If either is somehow missing, STOP and report it rather than installing — that would mean the tree diverged from what this plan was written against.
 
 - [ ] **Step 5: Build and typecheck**
 
@@ -171,8 +174,8 @@ Expected: clean.
 
 ```bash
 git add packages/@n8n/api-types/src/trip-generation.ts packages/@n8n/api-types/src/index.ts \
-  packages/@n8n/config/src/configs/voyagr.config.ts packages/cli/package.json pnpm-lock.yaml
-git commit -m "feat(voyagr): trip generation types, key config and Anthropic SDK"
+  packages/@n8n/config/src/configs/voyagr.config.ts
+git commit -m "feat(voyagr): trip generation types and generator key config"
 ```
 
 ---
@@ -684,7 +687,7 @@ git commit -m "feat(voyagr): build a candidate place pool from trip tastes"
 - Modify: `packages/cli/src/server.ts`
 
 **Interfaces:**
-- Consumes: `CandidatePoolBuilder` (Task 3), `buildTripWorkflow` (Task 2), `TripGenerationRequest`/`GeneratedTripOption` (Task 1), `globalConfig.voyagr.anthropicKey` (Task 1).
+- Consumes: `CandidatePoolBuilder` (Task 3), `buildTripWorkflow` (Task 2), `TripGenerationRequest`/`GeneratedTripOption` (Task 1), `globalConfig.voyagr.groqKey` (Task 1).
 - Produces: the endpoint the form calls —
 
   ```
@@ -709,43 +712,46 @@ import { z } from 'zod';
  * `providerId` is deliberately a plain string validated against the pool after
  * the fact rather than an enum: a pool of twenty ids would bloat the schema,
  * and anything unrecognised is dropped by the materialiser anyway.
+ *
+ * Deliberately free of `.min()` / `.max()` on the arrays. Groq's strict mode
+ * accepts only a subset of JSON Schema — `minItems`/`maxItems` are not in it,
+ * and a schema carrying them is rejected. Cardinality is enforced in the
+ * service after parsing instead, where a violation can degrade quietly rather
+ * than fail the request.
  */
 export const tripOptionsSchema = z.object({
-	options: z
-		.array(
-			z.object({
-				name: z.string(),
-				rationale: z.string(),
-				stops: z
-					.array(
-						z.object({
-							providerId: z.string(),
-							kind: z.enum([
-								'hotel',
-								'restaurant',
-								'cafe',
-								'attraction',
-								'activity',
-								'shopping',
-							]),
-							dayOffset: z.number().int().min(0),
-						}),
-					)
-					.min(1),
-			}),
-		)
-		.min(1)
-		.max(3),
+	options: z.array(
+		z.object({
+			name: z.string(),
+			rationale: z.string(),
+			stops: z.array(
+				z.object({
+					providerId: z.string(),
+					kind: z.enum([
+						'hotel',
+						'restaurant',
+						'cafe',
+						'attraction',
+						'activity',
+						'shopping',
+					]),
+					dayOffset: z.number().int(),
+				}),
+			),
+		}),
+	),
 });
 ```
+
+**Strict-mode requirements — verify these on the schema you actually send.** Groq rejects a strict schema unless every object has `additionalProperties: false` and lists every one of its properties in `required`. `zod-to-json-schema` does not necessarily emit `additionalProperties: false` by default, so after converting, assert the emitted schema satisfies both rules and post-process it if it does not. Confirm the exact behaviour against the installed `zod-to-json-schema` rather than assuming — the library, not this plan, is authoritative. Report what you found and whether post-processing was needed.
 
 - [ ] **Step 2: Write the generator service**
 
 Create `packages/cli/src/voyagr/generator/generator.service.ts`:
 
 ```ts
-import Anthropic from '@anthropic-ai/sdk';
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
+import OpenAI from 'openai';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 import type {
 	GeneratedTripOption,
 	PlaceResult,
@@ -758,13 +764,30 @@ import { Logger } from '@n8n/backend-common';
 import { CandidatePoolBuilder } from './candidate-pool';
 import { tripOptionsSchema } from './trip-options.schema';
 
-const MODEL = 'claude-opus-5';
+const GROQ_BASE_URL = 'https://api.groq.com/openai/v1';
+
+const MODEL = 'openai/gpt-oss-120b';
 
 /**
- * The output is a compact list of ids, not prose, so it stays well inside the
- * non-streaming ceiling. Streaming would add machinery for no benefit here.
+ * Groq's free tier allows 8,000 tokens per minute across input and output
+ * combined, so this ceiling is a budget, not a safety margin. The output is a
+ * compact list of ids rather than prose, which fits comfortably; the prompt is
+ * kept lean for the same reason.
  */
-const MAX_TOKENS = 16000;
+const MAX_TOKENS = 4000;
+
+/** Three is the product requirement; the model is asked for exactly this many. */
+const OPTION_COUNT = 3;
+
+/**
+ * Derived once at module load — the schema never varies per request.
+ *
+ * `$refStrategy: 'none'` inlines everything: Groq's strict mode is happier with
+ * a self-contained schema than with `$ref`/`$defs` indirection.
+ */
+const tripOptionsJsonSchema = zodToJsonSchema(tripOptionsSchema, {
+	$refStrategy: 'none',
+});
 
 export type GenerationResult = {
 	options: GeneratedTripOption[];
@@ -780,7 +803,7 @@ export class GeneratorService {
 	) {}
 
 	get isConfigured(): boolean {
-		return this.globalConfig.voyagr.anthropicKey !== '';
+		return this.globalConfig.voyagr.groqKey !== '';
 	}
 
 	/** Returns undefined whenever generation cannot run, for any reason. */
@@ -790,31 +813,59 @@ export class GeneratorService {
 		const places = await this.pool.build(request.destination, request.tastes);
 		if (places.length === 0) return undefined;
 
-		const client = new Anthropic({ apiKey: this.globalConfig.voyagr.anthropicKey });
+		const client = new OpenAI({
+			apiKey: this.globalConfig.voyagr.groqKey,
+			baseURL: GROQ_BASE_URL,
+		});
 
 		try {
-			const response = await client.messages.parse({
+			const response = await client.chat.completions.create({
 				model: MODEL,
 				max_tokens: MAX_TOKENS,
-				output_config: {
-					format: zodOutputFormat(tripOptionsSchema),
-					effort: 'high',
+				response_format: {
+					type: 'json_schema',
+					json_schema: {
+						name: 'trip_options',
+						// Constrained decoding: the model physically cannot emit a
+						// token that breaks the schema, which is what guarantees a
+						// provider id rather than an invented place name.
+						strict: true,
+						schema: tripOptionsJsonSchema,
+					},
 				},
 				messages: [{ role: 'user', content: this.buildPrompt(request, places) }],
 			});
 
-			// A refused request returns 200 with empty or partial content, so this
-			// has to be checked before touching the parsed output.
-			if (response.stop_reason === 'refusal') {
+			const choice = response.choices[0];
+
+			// A declined request comes back 200 with a stop reason rather than an
+			// error, so this has to be checked before touching the content.
+			if (choice?.finish_reason === 'content_filter') {
 				this.logger.warn('Trip generation was declined by the model');
 				return undefined;
 			}
 
-			const parsed = response.parsed_output;
-			if (!parsed) return undefined;
+			const content = choice?.message?.content;
+			if (!content) return undefined;
+
+			// Strict mode makes malformed JSON very unlikely, but the boundary is
+			// still untrusted input: parse and validate rather than assume.
+			const parsed = tripOptionsSchema.safeParse(JSON.parse(content));
+			if (!parsed.success) {
+				this.logger.warn('Trip generation returned an unusable shape', {
+					error: parsed.error,
+				});
+				return undefined;
+			}
+
+			const options = parsed.data.options
+				.filter((option) => option.stops.length > 0)
+				.slice(0, OPTION_COUNT);
+
+			if (options.length === 0) return undefined;
 
 			return {
-				options: parsed.options,
+				options,
 				placesById: new Map(places.map((place) => [place.providerId, place])),
 			};
 		} catch (error) {
@@ -857,7 +908,13 @@ export class GeneratorService {
 }
 ```
 
-If `zodOutputFormat`'s import path or `parsed_output`'s name differ in the installed SDK version, check the SDK's own type definitions in `node_modules/@anthropic-ai/sdk` and follow those — the SDK, not this plan, is authoritative. Report any difference you find.
+**Verify this against the installed libraries rather than trusting the code above.** Three things are most likely to differ:
+
+1. `zodToJsonSchema`'s emitted output — confirm it produces `additionalProperties: false` on every object and every property in `required`. If it does not, post-process the schema so it does, and say so in your report. Log or dump the derived schema once while developing so you have actually seen it.
+2. The `openai` SDK's typing of `response_format.json_schema` — `strict` and `schema` must typecheck; follow the SDK's own types if the field names differ.
+3. `max_tokens` may be deprecated in favour of `max_completion_tokens` in the installed SDK major. Use whichever the SDK types accept.
+
+The libraries, not this plan, are authoritative. Report any difference you find.
 
 - [ ] **Step 3: Write the controller**
 
@@ -1090,10 +1147,10 @@ Report PASS/FAIL with what you saw:
 
 1. **Plan with AI** appears on My Trips and opens a dialogue that looks like it belongs beside the signup screen — not a settings form.
 2. The form has exactly five things to fill in and no more.
-3. With no `VOYAGR_ANTHROPIC_KEY` set, submitting shows the quiet unavailable message and leaves the form usable — no error toast, no stack trace, no spinner stuck forever.
+3. With no `VOYAGR_GROQ_KEY` set, submitting shows the quiet unavailable message and leaves the form usable — no error toast, no stack trace, no spinner stuck forever.
 4. Nothing on My Trips or the canvas regressed.
 
-If both `VOYAGR_ANTHROPIC_KEY` and `VOYAGR_PLACES_KEY` are available, set them, restart, and additionally confirm: submitting draws a canvas with one Start Trip node fanning out to three branches, every node is a real named place, and the branches are visually separated. Screenshot the canvas and read it back with the Read tool.
+If both `VOYAGR_GROQ_KEY` and `VOYAGR_PLACES_KEY` are available, set them, restart, and additionally confirm: submitting draws a canvas with one Start Trip node fanning out to three branches, every node is a real named place, and the branches are visually separated. Screenshot the canvas and read it back with the Read tool.
 
 - [ ] **Step 4: Record it in the project notes**
 
@@ -1107,8 +1164,10 @@ Add to `docs/VOYAGR.md` section 2 ("What's done"):
 - The model chooses **by provider id from a pool of real places we fetched**, so
   it cannot invent a hotel. Anything unrecognised is dropped when the canvas is
   built (`packages/cli/src/voyagr/generator/build-trip-workflow.ts`).
-- `claude-opus-5` via `@anthropic-ai/sdk` with structured outputs; key is
-  `VOYAGR_ANTHROPIC_KEY` in deployment env, never shown to users.
+- `openai/gpt-oss-120b` on Groq's free tier via the `openai` SDK, using strict
+  JSON-schema structured outputs so the model can only ever return a provider
+  id, never an invented place name. Key is
+  `VOYAGR_GROQ_KEY` in deployment env, never shown to users.
 ```
 
 Add to section 5 ("Gotchas"):
