@@ -91,6 +91,22 @@ Plus **Start Trip** (trigger) and **Sticky Note** (annotations).
 - Start Trip gained `destination`; the six place nodes gained hidden
   `placeId` / `rating` / `priceTier` / `photoUrl` fields.
 
+**AI trip generator:**
+- "Plan with AI" on My Trips opens a short form — where to, travelling from,
+  dates, budget, and two sliders (how busy, mountains-to-beaches). Submitting
+  draws three complete itineraries as parallel branches on one canvas.
+- The connector layer picks a pool of *real* places first; the model then only
+  selects and sequences them **by provider id** and never writes a place name,
+  so a hallucinated hotel is structurally impossible. A pure materialiser
+  (`packages/cli/src/voyagr/generator/build-trip-workflow.ts`) turns the result
+  into workflow JSON.
+- `openai/gpt-oss-120b` on Groq's free tier via the `openai` SDK against
+  `https://api.groq.com/openai/v1`, using strict JSON-schema structured output.
+  Key is `VOYAGR_GROQ_KEY` in deployment env, never shown to users.
+- Strict mode is load-bearing, not a nicety: it is what forces a provider id
+  instead of free text. Only Groq's `gpt-oss` family supports it — every other
+  free model there is loose JSON mode at best.
+
 ---
 
 ## 3. Where things live (key files)
@@ -162,6 +178,9 @@ Plus **Start Trip** (trigger) and **Sticky Note** (annotations).
   state. Never surface a provider error to a traveller.
 - **`@Query` needs a zod DTO class, not a TS type.** `controller.registry.ts` only injects a `query`/`body` argument when its `design:paramtypes` metadata has a `safeParse`. A bare inline object type has no runtime representation, so the argument arrives `undefined` and destructuring it throws on the first request. Declare a `Z.class` DTO (see `places-query.dto.ts`).
 - **Undefined CSS variables fail silently.** The spacing scale is `--spacing--sm`, not `--spacing--s`; a typo'd token collapses the property to nothing with no build or lint error. Check names against `@n8n/design-system/src/css/_primitives.scss`.
+- **Groq free tier is 8,000 tokens/min, input and output combined.** That is the real constraint on trip generation, not context size. The prompt sends a trimmed place list (id, name, kind, rating, price tier — no blurbs or URLs) and caps completion tokens; worst case measures ~6.4k.
+- **Groq strict mode accepts only a subset of JSON Schema.** Every object needs `additionalProperties: false` and every property in `required`; `minItems`/`maxItems` are rejected, so array cardinality is enforced in code after parsing, not in the schema.
+- **Playwright's `getByTestId` defaults to `data-testid`, but n8n uses `data-test-id`.** Call `selectors.setTestIdAttribute('data-test-id')` in throwaway scripts, or match `[data-test-id="..."]` directly. Also: element-plus components (`ElDatePicker`) swallow the attribute rather than forwarding it.
 
 ---
 
