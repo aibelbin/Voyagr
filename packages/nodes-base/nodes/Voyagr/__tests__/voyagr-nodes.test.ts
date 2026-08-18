@@ -1,4 +1,4 @@
-import type { INodeProperties } from 'n8n-workflow';
+import type { IDataObject, INodeProperties, ITriggerFunctions } from 'n8n-workflow';
 
 import { Activity } from '../Activity/Activity.node';
 import { Bus } from '../Bus/Bus.node';
@@ -16,6 +16,37 @@ describe('Start Trip', () => {
 		const travellers = property(new TripStart().description.properties, 'travellers');
 
 		expect(travellers).toMatchObject({ type: 'number', default: 1 });
+	});
+
+	it('emits the party size alongside the rest of the trip context', async () => {
+		const tripParameters: IDataObject = {
+			startLocation: 'Home',
+			destination: 'Kyoto, Japan',
+			startDate: '2026-01-01',
+			endDate: '2026-01-10',
+			budget: 2000,
+			currency: 'USD',
+			travellers: 4,
+		};
+
+		const emitSpy = vi.fn<ITriggerFunctions['emit']>();
+		const context = {
+			getNodeParameter: vi.fn<ITriggerFunctions['getNodeParameter']>((name) => tripParameters[name]),
+			emit: emitSpy,
+			helpers: {
+				returnJsonArray: (data: IDataObject[]) => data.map((json) => ({ json })),
+			},
+		} as unknown as ITriggerFunctions;
+
+		const { manualTriggerFunction } = await new TripStart().trigger.call(context);
+		await manualTriggerFunction?.();
+
+		expect(emitSpy).toHaveBeenCalledTimes(1);
+		const [emittedOutput] = emitSpy.mock.calls[0][0];
+		const [emittedItem] = emittedOutput;
+
+		expect(emittedItem.json).toMatchObject(tripParameters);
+		expect(emittedItem.json.travellers).toBe(4);
 	});
 });
 
