@@ -38,6 +38,7 @@ const startDate = ref('');
 const endDate = ref('');
 const budget = ref('1000');
 const currency = ref<string>(CURRENCIES[0]);
+const travellers = ref('1');
 const pace = ref(50);
 const terrain = ref(50);
 
@@ -74,6 +75,7 @@ async function onSubmit(): Promise<void> {
 		endDate: endDate.value,
 		budget: Number(budget.value),
 		currency: currency.value,
+		travellers: Number(travellers.value),
 		tastes: { pace: pace.value, terrain: terrain.value },
 	};
 
@@ -191,6 +193,21 @@ async function onSubmit(): Promise<void> {
 						<N8nOption v-for="code in CURRENCIES" :key="code" :value="code" :label="code" />
 					</N8nSelect>
 				</div>
+			</N8nInputLabel>
+
+			<N8nInputLabel
+				:label="i18n.baseText('voyagr.generate.travellers')"
+				input-name="voyagr-travellers"
+			>
+				<N8nInput
+					id="voyagr-travellers"
+					v-model="travellers"
+					name="voyagr-travellers"
+					type="number"
+					:min="1"
+					:disabled="submitting"
+					data-test-id="voyagr-travellers"
+				/>
 			</N8nInputLabel>
 
 			<N8nInputLabel :label="i18n.baseText('voyagr.generate.pace')">

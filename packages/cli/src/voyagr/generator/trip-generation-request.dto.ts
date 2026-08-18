@@ -19,6 +19,9 @@ export class TripGenerationRequestDto extends Z.class({
 	endDate: z.string(),
 	budget: z.number(),
 	currency: z.string(),
+	// Clamped rather than rejected, like the sliders: a thin payload must come
+	// back as one quiet "couldn't plan this", never a validation error.
+	travellers: z.number().min(1).catch(1),
 	tastes: z.object({
 		pace: z.number().min(0).max(100).catch(50),
 		terrain: z.number().min(0).max(100).catch(50),

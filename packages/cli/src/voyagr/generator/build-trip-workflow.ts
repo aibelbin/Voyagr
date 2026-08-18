@@ -9,6 +9,7 @@ export type TripWorkflowParams = {
 	endDate: string;
 	budget: number;
 	currency: string;
+	travellers: number;
 };
 
 const TRIGGER_NAME = 'Start Trip';
@@ -60,6 +61,7 @@ export function buildTripWorkflow(
 			endDate: params.endDate,
 			budget: params.budget,
 			currency: params.currency,
+			travellers: params.travellers,
 		},
 	};
 

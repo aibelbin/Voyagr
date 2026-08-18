@@ -20,6 +20,8 @@ export type TripGenerationRequest = {
 	budget: number;
 	currency: string;
 	tastes: TripTastes;
+	/** Party size. Per-person costs are multiplied by this. */
+	travellers: number;
 };
 
 export type GeneratedStop = {

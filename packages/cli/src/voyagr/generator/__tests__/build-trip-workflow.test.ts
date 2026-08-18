@@ -9,6 +9,7 @@ const params = {
 	endDate: '2026-09-19T09:00:00',
 	budget: 3000,
 	currency: 'USD',
+	travellers: 2,
 };
 
 const place = (providerId: string, name: string): PlaceResult => ({
@@ -114,6 +115,14 @@ describe('buildTripWorkflow', () => {
 		const { nodes } = buildTripWorkflow(params, withGhost, placesById);
 
 		expect(nodes).toHaveLength(1);
+	});
+
+	it('writes the party size onto the trigger so per-person costs price correctly', () => {
+		const { nodes } = buildTripWorkflow(params, options, placesById);
+
+		const trigger = nodes.find((node) => node.type === 'n8n-nodes-base.tripStart');
+
+		expect(trigger?.parameters).toMatchObject({ travellers: 2 });
 	});
 
 	it('gives duplicate place names distinct node names', () => {
