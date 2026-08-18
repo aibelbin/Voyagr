@@ -22,7 +22,7 @@ export class Flight implements INodeType {
 			{ displayName: 'From', name: 'from', type: 'string', default: '', placeholder: 'JFK' },
 			{ displayName: 'To', name: 'to', type: 'string', default: '', placeholder: 'FCO' },
 			{ displayName: 'Departure', name: 'departure', type: 'dateTime', default: '' },
-			{ displayName: 'Price', name: 'price', type: 'number', default: 0 },
+			{ displayName: 'Price per Person', name: 'price', type: 'number', default: 0 },
 		],
 	};
 

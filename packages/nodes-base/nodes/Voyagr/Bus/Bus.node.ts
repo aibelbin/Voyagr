@@ -10,7 +10,7 @@ export class Bus implements INodeType {
 			{ displayName: 'From', name: 'from', type: 'string', default: '' },
 			{ displayName: 'To', name: 'to', type: 'string', default: '' },
 			{ displayName: 'Departure', name: 'departure', type: 'dateTime', default: '' },
-			{ displayName: 'Price', name: 'price', type: 'number', default: 0 },
+			{ displayName: 'Price per Person', name: 'price', type: 'number', default: 0 },
 		],
 	};
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {

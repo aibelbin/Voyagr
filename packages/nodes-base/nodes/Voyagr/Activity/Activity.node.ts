@@ -11,7 +11,7 @@ export class Activity implements INodeType {
 			{ displayName: 'Type', name: 'kind', type: 'options', default: 'tour', options: [
 				{ name: 'Tour', value: 'tour' }, { name: 'Class', value: 'class' }, { name: 'Adventure', value: 'adventure' },
 				{ name: 'Nightlife', value: 'nightlife' }, { name: 'Show', value: 'show' } ] },
-			{ displayName: 'Price', name: 'price', type: 'number', default: 0 },
+			{ displayName: 'Price per Person', name: 'price', type: 'number', default: 0 },
 			{ displayName: 'Duration (hours)', name: 'durationHours', type: 'number', default: 2 },
 			{ displayName: 'Place ID', name: 'placeId', type: 'hidden', default: '' },
 			{ displayName: 'Rating', name: 'rating', type: 'hidden', default: 0 },

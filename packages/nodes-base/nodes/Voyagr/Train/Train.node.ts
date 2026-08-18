@@ -22,7 +22,7 @@ export class Train implements INodeType {
 			{ displayName: 'From', name: 'from', type: 'string', default: '', placeholder: 'Roma Termini' },
 			{ displayName: 'To', name: 'to', type: 'string', default: '', placeholder: 'Firenze SMN' },
 			{ displayName: 'Departure', name: 'departure', type: 'dateTime', default: '' },
-			{ displayName: 'Price', name: 'price', type: 'number', default: 0 },
+			{ displayName: 'Price per Person', name: 'price', type: 'number', default: 0 },
 		],
 	};
 

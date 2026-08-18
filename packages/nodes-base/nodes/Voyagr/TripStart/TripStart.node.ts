@@ -83,6 +83,14 @@ export class TripStart implements INodeType {
 					{ name: 'US Dollar (USD)', value: 'USD' },
 				],
 			},
+			{
+				displayName: 'Travellers',
+				name: 'travellers',
+				type: 'number',
+				default: 1,
+				typeOptions: { minValue: 1 },
+				description: 'How many people are going. Per-person costs are multiplied by this.',
+			},
 		],
 	};
 
@@ -97,6 +105,7 @@ export class TripStart implements INodeType {
 						endDate: this.getNodeParameter('endDate', '') as string,
 						budget: this.getNodeParameter('budget', 0) as number,
 						currency: this.getNodeParameter('currency', 'USD') as string,
+						travellers: this.getNodeParameter('travellers', 1) as number,
 					},
 				]),
 			]);
