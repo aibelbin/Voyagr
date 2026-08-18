@@ -33,6 +33,7 @@ describe('AuthService', () => {
 	const globalConfig = mock<GlobalConfig>({
 		auth: { cookie: { secure: true, samesite: 'lax' } },
 		userManagement: { jwtSecret: 'random-secret' },
+		endpoints: { rest: 'rest' },
 	});
 	const jwtService = new JwtService(mock(), globalConfig);
 	const urlService = mock<UrlService>();
@@ -694,6 +695,33 @@ describe('AuthService', () => {
 			// Should still throw for POST even on skip endpoint
 			await expect(authService.resolveJwt(validToken, req, res)).rejects.toThrow('Unauthorized');
 			expect(res.cookie).not.toHaveBeenCalled();
+		});
+
+		it('should skip browserId check for the place photo endpoint', async () => {
+			userRepository.findOne.mockResolvedValue(user);
+			const req = mock<AuthenticatedRequest>({
+				browserId: 'another-browser',
+				method: 'GET',
+				baseUrl: '/rest',
+				route: { path: '/voyagr/places/photo' },
+			});
+
+			// `<img src>` cannot carry the browser-id header, so this must pass.
+			const result = await authService.resolveJwt(validToken, req, res);
+
+			expect(result).toEqual([user, { usedMfa: false }]);
+		});
+
+		it('should not skip browserId check for the place search endpoint', async () => {
+			userRepository.findOne.mockResolvedValue(user);
+			const req = mock<AuthenticatedRequest>({
+				browserId: 'another-browser',
+				method: 'GET',
+				baseUrl: '/rest',
+				route: { path: '/voyagr/places' },
+			});
+
+			await expect(authService.resolveJwt(validToken, req, res)).rejects.toThrow('Unauthorized');
 		});
 
 		test.each([

@@ -98,6 +98,11 @@ export class AuthService {
 			// Skip browser ID check for chat hub attachments
 			`/${restEndpoint}/chat/conversations/:sessionId/messages/:messageId/attachments/:index`,
 
+			// Suggestion cards load photos with `<img src>`, and an `<img>` tag cannot
+			// carry the browser-id header. GET-only by the guard below, and an exact
+			// path match — the search endpoint beside it keeps its check.
+			`/${restEndpoint}/voyagr/places/photo`,
+
 			// Skip browser ID check for Instance AI SSE endpoint — EventSource can't send custom headers
 			`/${restEndpoint}/instance-ai/events/:threadId`,
 		];
