@@ -1,3 +1,4 @@
+import { getChildNodes } from 'n8n-workflow';
 import type { IConnections } from 'n8n-workflow';
 
 import type { INodeUi } from '@/Interface';
@@ -19,7 +20,11 @@ export type TripBudgetBranch = {
 };
 
 export type TripBudget = {
-	/** Zero means the traveller has not set one, matching `computeTripSummary`. */
+	/**
+	 * Zero or negative means the traveller has not set one, matching
+	 * `computeTripSummary`'s semantics — though this side also coerces a
+	 * numeric string, since node parameters can legitimately arrive as one.
+	 */
 	budget: number;
 	currency: string;
 	travellers: number;
@@ -27,7 +32,11 @@ export type TripBudget = {
 	branches: TripBudgetBranch[];
 };
 
-/** A zero or negative budget means unset, not free. */
+/**
+ * A zero or negative budget means unset, not free — same semantics as
+ * `computeTripSummary`'s `asAmount`, but this also coerces a numeric string
+ * rather than treating it as unset.
+ */
 function readAmount(value: unknown): number {
 	const parsed = typeof value === 'number' ? value : Number(value);
 
@@ -42,29 +51,6 @@ function readTravellers(value: unknown): number {
 
 function readCurrency(value: unknown): string {
 	return typeof value === 'string' && value.trim() !== '' ? value : DEFAULT_CURRENCY;
-}
-
-/**
- * Every node name reachable downstream of `root`, inclusive.
- *
- * `seen` makes a cycle terminate and a diamond count once per branch rather
- * than once per path into it.
- */
-function reachableFrom(root: string, connections: IConnections): Set<string> {
-	const seen = new Set<string>();
-	const queue = [root];
-
-	while (queue.length > 0) {
-		const name = queue.shift();
-		if (name === undefined || seen.has(name)) continue;
-		seen.add(name);
-
-		for (const outputs of connections[name]?.main ?? []) {
-			for (const target of outputs ?? []) queue.push(target.node);
-		}
-	}
-
-	return seen;
 }
 
 /**
@@ -103,7 +89,9 @@ export function computeTripBudget(nodes: INodeUi[], connections: IConnections): 
 	const branches: TripBudgetBranch[] = tripStart
 		? (connections[tripStart.name]?.main?.[0] ?? []).map((edge, position) => ({
 				index: position + 1,
-				total: total(reachableFrom(edge.node, connections)),
+				// A branch is the edge's own node plus everything downstream of it;
+				// `getChildNodes` excludes the queried node, so it's re-added here.
+				total: total([edge.node, ...getChildNodes(connections, edge.node, 'main', -1)]),
 			}))
 		: [{ index: 1, total: total(costByNodeName.keys()) }];
 

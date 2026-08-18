@@ -130,6 +130,24 @@ describe('computeTripBudget', () => {
 		expect(result.branches).toEqual([{ index: 1, total: 12 }]);
 	});
 
+	it('walks past a null entry in a main output array', () => {
+		const nodes = [
+			tripStart(),
+			node('h', 'Hotel', 'n8n-nodes-base.hotel', { pricePerNight: 100, nights: 1 }),
+			node('r', 'Dinner', 'n8n-nodes-base.restaurant', { avgCost: 30 }),
+		];
+		// Hotel's first output slot is unconnected (null), its second carries the
+		// real edge — `IConnections`' `main` arrays are `Array<IConnection[] | null>`.
+		const connections: IConnections = {
+			'Start Trip': { main: [[{ node: 'Hotel', type: 'main', index: 0 }]] },
+			Hotel: { main: [null, [{ node: 'Dinner', type: 'main', index: 0 }]] },
+		};
+
+		const result = computeTripBudget(nodes, connections);
+
+		expect(result.branches).toEqual([{ index: 1, total: 130 }]);
+	});
+
 	it('falls back to one branch over everything when there is no Start Trip', () => {
 		const nodes = [
 			node('h', 'Hotel', 'n8n-nodes-base.hotel', { pricePerNight: 100, nights: 1 }),
