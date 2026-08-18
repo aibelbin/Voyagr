@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { PlaceResult } from '@n8n/api-types';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { N8nButton, N8nIcon, N8nText } from '@n8n/design-system';
 import { useI18n } from '@n8n/i18n';
 
@@ -16,11 +16,30 @@ const rating = computed(() =>
 const priceTier = computed(() =>
 	props.place.priceTier === undefined ? null : '$'.repeat(props.place.priceTier),
 );
+
+// A miss on the photo proxy (spent quota, a dead link) would otherwise leave the
+// browser's broken-image glyph on the card. A card with no photo reads better.
+const photoFailed = ref(false);
+
+watch(
+	() => props.place.photoUrl,
+	() => {
+		photoFailed.value = false;
+	},
+);
+
+const showPhoto = computed(() => Boolean(props.place.photoUrl) && !photoFailed.value);
 </script>
 
 <template>
 	<div :class="$style.card" data-test-id="place-card">
-		<img v-if="place.photoUrl" :src="place.photoUrl" :alt="place.name" :class="$style.photo" />
+		<img
+			v-if="showPhoto"
+			:src="place.photoUrl"
+			:alt="place.name"
+			:class="$style.photo"
+			@error="photoFailed = true"
+		/>
 		<div :class="$style.body">
 			<N8nText bold>{{ place.name }}</N8nText>
 			<div :class="$style.meta">

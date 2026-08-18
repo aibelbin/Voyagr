@@ -28,16 +28,18 @@ async function onSearch(): Promise<void> {
 
 <template>
 	<aside :class="$style.panel" data-test-id="places-panel">
-		<N8nText bold :class="$style.title">
-			{{ i18n.baseText('voyagr.places.title', { interpolate: { destination } }) }}
-		</N8nText>
+		<div :class="$style.header">
+			<N8nText bold>
+				{{ i18n.baseText('voyagr.places.title', { interpolate: { destination } }) }}
+			</N8nText>
 
-		<N8nInput
-			v-model="query"
-			:placeholder="i18n.baseText('voyagr.places.search')"
-			size="small"
-			@keyup.enter="onSearch"
-		/>
+			<N8nInput
+				v-model="query"
+				:placeholder="i18n.baseText('voyagr.places.search')"
+				size="small"
+				@keyup.enter="onSearch"
+			/>
+		</div>
 
 		<N8nText v-if="!destination" color="text-light" size="small">
 			{{ i18n.baseText('voyagr.places.noDestination') }}
@@ -76,9 +78,16 @@ async function onSearch(): Promise<void> {
 	background-color: var(--background--surface);
 }
 
-.title {
+.header {
 	position: sticky;
 	top: 0;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing--xs);
+	padding-bottom: var(--spacing--xs);
+	// Opaque, or scrolled cards paint through the heading.
+	background-color: var(--background--surface);
 }
 
 .results {
