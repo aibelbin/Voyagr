@@ -19,6 +19,7 @@ import NodeIcon from '@/app/components/NodeIcon.vue';
 import { useRoute } from 'vue-router';
 import { VIEWS } from '@/app/constants';
 import { getNodeIconSize, type NodeIconSource } from '@/app/utils/nodeIcon';
+import NodeBudgetChip from '@/features/voyagr/budget/components/NodeBudgetChip.vue';
 
 const $style = useCssModule();
 const i18n = useI18n();
@@ -247,6 +248,7 @@ function onActivate(event: MouseEvent) {
 			<div v-if="subtitle && !isNotInstalledCommunityNode" :class="$style.subtitle">
 				{{ subtitle }}
 			</div>
+			<NodeBudgetChip :node-id="id" :class="$style.budget" />
 		</div>
 		<CanvasNodeStatusIcons v-if="!isDisabled" :class="$style.statusIcons" />
 	</div>
@@ -453,6 +455,10 @@ function onActivate(event: MouseEvent) {
 	text-overflow: ellipsis;
 	line-height: var(--line-height--sm);
 	font-weight: var(--font-weight--regular);
+}
+
+.budget {
+	margin-top: var(--spacing--5xs);
 }
 
 .statusIcons {
