@@ -1,22 +1,17 @@
 <script setup lang="ts">
-import TabBar from '@/app/components/MainHeader/TabBar.vue';
 import WorkflowDetails from '@/app/components/MainHeader/WorkflowDetails.vue';
 import { useI18n } from '@n8n/i18n';
 import { usePushConnection } from '@/app/composables/usePushConnection';
 import {
 	LOCAL_STORAGE_HIDE_GITHUB_STAR_BUTTON,
-	MAIN_HEADER_TABS,
 	STICKY_NODE_TYPE,
-	VIEWS,
 	N8N_MAIN_GITHUB_REPO_URL,
 } from '@/app/constants';
-import { useExecutionsStore } from '@/features/execution/executions/executions.store';
 import { injectNDVStoreIfProvided } from '@/features/ndv/shared/ndv.store';
 import { useSettingsStore } from '@/app/stores/settings.store';
 import { useUIStore } from '@/app/stores/ui.store';
 import { useWorkflowsListStore } from '@/app/stores/workflowsList.store';
-import { computed, inject, onBeforeMount, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import type { RouteLocation, RouteLocationRaw } from 'vue-router';
+import { computed, inject, onBeforeMount, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { WorkflowDocumentStoreKey } from '@/app/constants/injectionKeys';
 import { useInjectWorkflowId } from '@/app/composables/useInjectWorkflowId';
@@ -37,35 +32,9 @@ const toast = useToast();
 const ndvStore = injectNDVStoreIfProvided();
 const uiStore = useUIStore();
 const workflowsListStore = useWorkflowsListStore();
-const executionsStore = useExecutionsStore();
 const settingsStore = useSettingsStore();
 
-const activeHeaderTab = ref(MAIN_HEADER_TABS.WORKFLOW);
-const workflowToReturnTo = ref('');
-const executionToReturnTo = ref('');
-const dirtyState = ref(false);
 const githubButtonHidden = useLocalStorage(LOCAL_STORAGE_HIDE_GITHUB_STAR_BUTTON, false);
-
-// Track the routes that are used for the tabs
-// This is used to determine which tab to show when the route changes
-// TODO: It might be easier to manage this in the router config, by passing meta information to the routes
-// This would allow us to specify it just once on the root route, and then have the tabs be determined for children
-const evaluationRoutes: VIEWS[] = [VIEWS.EVALUATION_EDIT, VIEWS.EVALUATION_RUNS_DETAIL];
-
-const workflowRoutes: VIEWS[] = [VIEWS.WORKFLOW, VIEWS.NEW_WORKFLOW, VIEWS.EXECUTION_DEBUG];
-
-const executionRoutes: VIEWS[] = [
-	VIEWS.EXECUTION_HOME,
-	VIEWS.WORKFLOW_EXECUTIONS,
-	VIEWS.EXECUTION_PREVIEW,
-];
-const tabBarItems = computed(() => {
-	return [
-		{ value: MAIN_HEADER_TABS.WORKFLOW, label: locale.baseText('generic.editor') },
-		{ value: MAIN_HEADER_TABS.EXECUTIONS, label: locale.baseText('generic.executions') },
-		{ value: MAIN_HEADER_TABS.EVALUATION, label: locale.baseText('generic.tests') },
-	];
-});
 
 const activeNode = computed(() => ndvStore.value?.activeNode ?? null);
 const hideMenuBar = computed(() =>
@@ -103,10 +72,6 @@ const parentFolderForBreadcrumbs = computed<FolderShortInfo | undefined>(() => {
 	};
 });
 
-watch(route, (to, from) => {
-	syncTabsWithRoute(to, from);
-});
-
 onBeforeMount(() => {
 	pushConnection.initialize();
 });
@@ -114,144 +79,6 @@ onBeforeMount(() => {
 onBeforeUnmount(() => {
 	pushConnection.terminate();
 });
-
-onMounted(async () => {
-	dirtyState.value = uiStore.stateIsDirty;
-	syncTabsWithRoute(route);
-});
-
-function isViewRoute(name: unknown): name is VIEWS {
-	return (
-		typeof name === 'string' &&
-		[evaluationRoutes, workflowRoutes, executionRoutes].flat().includes(name as VIEWS)
-	);
-}
-
-function syncTabsWithRoute(to: RouteLocation, from?: RouteLocation): void {
-	// Map route types to their corresponding tab in the header
-	const routeTabMapping = [
-		{ routes: evaluationRoutes, tab: MAIN_HEADER_TABS.EVALUATION },
-		{ routes: executionRoutes, tab: MAIN_HEADER_TABS.EXECUTIONS },
-		{ routes: workflowRoutes, tab: MAIN_HEADER_TABS.WORKFLOW },
-	];
-
-	// Update the active tab based on the current route
-	if (to.name && isViewRoute(to.name)) {
-		const matchingTab = routeTabMapping.find(({ routes }) => routes.includes(to.name as VIEWS));
-		if (matchingTab) {
-			activeHeaderTab.value = matchingTab.tab;
-		}
-	}
-
-	// Store the current workflow ID, but only if it's not a new workflow
-	if (typeof to.params.workflowId === 'string') {
-		workflowToReturnTo.value = to.params.workflowId;
-	}
-
-	if (
-		from?.name === VIEWS.EXECUTION_PREVIEW &&
-		to.params.workflowId === from.params.workflowId &&
-		typeof from.params.executionId === 'string'
-	) {
-		executionToReturnTo.value = from.params.executionId;
-	}
-}
-
-function onTabSelected(tab: MAIN_HEADER_TABS, event: MouseEvent) {
-	const openInNewTab = event.ctrlKey || event.metaKey;
-
-	switch (tab) {
-		case MAIN_HEADER_TABS.WORKFLOW:
-			void navigateToWorkflowView(openInNewTab);
-			break;
-
-		case MAIN_HEADER_TABS.EXECUTIONS:
-			void navigateToExecutionsView(openInNewTab);
-			break;
-
-		case MAIN_HEADER_TABS.EVALUATION:
-			void navigateToEvaluationsView(openInNewTab);
-			break;
-
-		default:
-			break;
-	}
-}
-
-async function navigateToWorkflowView(openInNewTab: boolean) {
-	let routeToNavigateTo: RouteLocationRaw;
-	if (workflowToReturnTo.value && workflowToReturnTo.value !== '') {
-		routeToNavigateTo = {
-			name: VIEWS.WORKFLOW,
-			params: { workflowId: workflowToReturnTo.value },
-			query: route.query,
-		};
-	} else {
-		routeToNavigateTo = {
-			name: VIEWS.NEW_WORKFLOW,
-			query: route.query,
-		};
-	}
-
-	if (openInNewTab) {
-		const { href } = router.resolve(routeToNavigateTo);
-		window.open(href, '_blank');
-	} else if (route.name !== routeToNavigateTo.name) {
-		if (route.name === VIEWS.NEW_WORKFLOW) {
-			if (dirtyState.value) {
-				uiStore.markStateDirty();
-			} else {
-				uiStore.markStateClean();
-			}
-		}
-		activeHeaderTab.value = MAIN_HEADER_TABS.WORKFLOW;
-		await router.push(routeToNavigateTo);
-	}
-}
-
-async function navigateToExecutionsView(openInNewTab: boolean) {
-	const executionToReturnToValue = executionsStore.activeExecution?.id || executionToReturnTo.value;
-
-	const routeToNavigateTo: RouteLocationRaw = executionToReturnToValue
-		? {
-				name: VIEWS.EXECUTION_PREVIEW,
-				params: { workflowId: workflowId.value, executionId: executionToReturnToValue },
-				query: route.query,
-			}
-		: {
-				name: VIEWS.EXECUTION_HOME,
-				params: { workflowId: workflowId.value },
-				query: route.query,
-			};
-
-	if (openInNewTab) {
-		const { href } = router.resolve(routeToNavigateTo);
-		window.open(href, '_blank');
-	} else if (route.name !== routeToNavigateTo.name) {
-		dirtyState.value = uiStore.stateIsDirty;
-		workflowToReturnTo.value = workflowId.value;
-		activeHeaderTab.value = MAIN_HEADER_TABS.EXECUTIONS;
-		await router.push(routeToNavigateTo);
-	}
-}
-
-async function navigateToEvaluationsView(openInNewTab: boolean) {
-	const routeToNavigateTo: RouteLocationRaw = {
-		name: VIEWS.EVALUATION_EDIT,
-		params: { workflowId: workflowId.value },
-		query: route.query,
-	};
-
-	if (openInNewTab) {
-		const { href } = router.resolve(routeToNavigateTo);
-		window.open(href, '_blank');
-	} else if (route.name !== routeToNavigateTo.name) {
-		dirtyState.value = uiStore.stateIsDirty;
-		workflowToReturnTo.value = workflowId.value;
-		activeHeaderTab.value = MAIN_HEADER_TABS.EVALUATION;
-		await router.push(routeToNavigateTo);
-	}
-}
 
 function hideGithubButton() {
 	githubButtonHidden.value = true;
@@ -318,13 +145,6 @@ async function onWorkflowDeactivated() {
 					</div>
 				</div>
 			</div>
-			<TabBar
-				v-if="onWorkflowPage"
-				:items="tabBarItems"
-				:model-value="activeHeaderTab"
-				:floating="settingsStore.isCanvasOnly"
-				@update:model-value="onTabSelected"
-			/>
 		</div>
 	</div>
 </template>
