@@ -41,7 +41,8 @@ export class ModuleRegistry {
 	) {}
 
 	private readonly defaultModules: ModuleName[] = [
-		'insights',
+		// Voyagr omits `insights`: it reports on automation executions, which
+		// is not what a trip is.
 		'external-secrets',
 		'community-packages',
 		'data-table',

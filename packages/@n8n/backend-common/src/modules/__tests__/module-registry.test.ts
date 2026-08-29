@@ -100,6 +100,12 @@ describe('eligibleModules', () => {
 		]);
 	});
 
+	it('should consider a module eligible if it was enabled via env var alone, with no disabled modules set', () => {
+		process.env.N8N_ENABLED_MODULES = 'insights';
+		expect(() => Container.get(ModuleRegistry).eligibleModules).not.toThrow();
+		expect(Container.get(ModuleRegistry).eligibleModules).toContain('insights');
+	});
+
 	it('should throw `ModuleConfusionError` if a module is both enabled and disabled', () => {
 		process.env.N8N_ENABLED_MODULES = 'insights';
 		process.env.N8N_DISABLED_MODULES = 'insights';
