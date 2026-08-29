@@ -25,43 +25,58 @@ type Segment = {
 
 const money = (amount: number) => formatTripMoney(amount, currency.value);
 
+/**
+ * A branch with nothing priced yet gets no segment — an empty canvas
+ * shouldn't show a zero bar. Suppression is per branch, not a single gate on
+ * the whole wrapper: a three-option AI plan with one option still unpriced
+ * must still show pills for the other two.
+ *
+ * "Option N" labelling is driven by the *total* branch count, not how many
+ * survive the filter: it names which of the trip's alternatives this pill is,
+ * and that identity doesn't change as sibling options get priced in. A trip
+ * with three options where only one is priced still reads "Option 2" (say) —
+ * unlabelling it would make it indistinguishable from a genuine single-branch
+ * trip, when two other options actually exist off-canvas.
+ */
 const segments = computed<Segment[]>(() =>
-	branches.value.map((branch) => {
-		const hasBudget = budget.value > 0;
-		const isOver = hasBudget && branch.total > budget.value;
+	branches.value
+		.filter((branch) => branch.total > 0)
+		.map((branch) => {
+			const hasBudget = budget.value > 0;
+			const isOver = hasBudget && branch.total > budget.value;
 
-		return {
-			key: branch.index,
-			option:
-				branches.value.length > 1
-					? i18n.baseText('voyagr.budget.option', {
-							interpolate: { index: branch.index },
+			return {
+				key: branch.index,
+				option:
+					branches.value.length > 1
+						? i18n.baseText('voyagr.budget.option', {
+								interpolate: { index: branch.index },
+							})
+						: null,
+				spend: hasBudget
+					? i18n.baseText('voyagr.budget.of', {
+							interpolate: { spent: money(branch.total), budget: money(budget.value) },
 						})
-					: null,
-			spend: hasBudget
-				? i18n.baseText('voyagr.budget.of', {
-						interpolate: { spent: money(branch.total), budget: money(budget.value) },
-					})
-				: i18n.baseText('voyagr.budget.planned', {
-						interpolate: { amount: money(branch.total) },
-					}),
-			remaining: !hasBudget
-				? i18n.baseText('voyagr.budget.noBudget')
-				: isOver
-					? i18n.baseText('voyagr.budget.over', {
-							interpolate: { amount: money(branch.total - budget.value) },
-						})
-					: i18n.baseText('voyagr.budget.left', {
-							interpolate: { amount: money(budget.value - branch.total) },
+					: i18n.baseText('voyagr.budget.planned', {
+							interpolate: { amount: money(branch.total) },
 						}),
-			percent: hasBudget ? Math.min(Math.round((branch.total / budget.value) * 100), 100) : 0,
-			isOver,
-		};
-	}),
+				remaining: !hasBudget
+					? i18n.baseText('voyagr.budget.noBudget')
+					: isOver
+						? i18n.baseText('voyagr.budget.over', {
+								interpolate: { amount: money(branch.total - budget.value) },
+							})
+						: i18n.baseText('voyagr.budget.left', {
+								interpolate: { amount: money(budget.value - branch.total) },
+							}),
+				percent: hasBudget ? Math.min(Math.round((branch.total / budget.value) * 100), 100) : 0,
+				isOver,
+			};
+		}),
 );
 
 /** Nothing priced yet is not worth a pill. */
-const visible = computed(() => branches.value.some((branch) => branch.total > 0));
+const visible = computed(() => segments.value.length > 0);
 </script>
 
 <template>
@@ -108,7 +123,7 @@ const visible = computed(() => branches.value.some((branch) => branch.total > 0)
 }
 
 .option {
-	color: var(--color--text--tint-1);
+	color: var(--text-color--subtler);
 }
 
 .amounts {
@@ -124,6 +139,11 @@ const visible = computed(() => branches.value.some((branch) => branch.total > 0)
 	height: var(--spacing--3xs);
 	border: 0;
 	border-radius: var(--radius--2xs);
+	// Firefox has no track pseudo-element: after `appearance: none` it paints
+	// the unfilled track as the element's own background (::-moz-progress-bar
+	// is only the fill). This is the cross-browser fallback, same pattern as
+	// TrialBanner.vue's `.progressBar`.
+	background-color: var(--color--foreground--shade-1);
 
 	&::-webkit-progress-bar {
 		background-color: var(--color--foreground--shade-1);
