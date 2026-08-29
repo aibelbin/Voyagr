@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import WorkflowDetails from '@/app/components/MainHeader/WorkflowDetails.vue';
+import TripBudgetPill from '@/features/voyagr/budget/components/TripBudgetPill.vue';
 import { useI18n } from '@n8n/i18n';
 import { usePushConnection } from '@/app/composables/usePushConnection';
 import {
@@ -145,6 +146,7 @@ async function onWorkflowDeactivated() {
 					</div>
 				</div>
 			</div>
+			<TripBudgetPill v-if="onWorkflowPage" />
 		</div>
 	</div>
 </template>
