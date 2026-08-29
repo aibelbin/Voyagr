@@ -69,7 +69,6 @@ describe('eligibleModules', () => {
 	it('should consider a module eligible if it was enabled via env var', () => {
 		process.env.N8N_ENABLED_MODULES = 'instance-ai';
 		expect(Container.get(ModuleRegistry).eligibleModules).toEqual([
-			'insights',
 			'external-secrets',
 			'community-packages',
 			'data-table',

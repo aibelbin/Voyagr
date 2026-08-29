@@ -53,7 +53,12 @@ export class ModulesConfig {
 	@Env('N8N_ENABLED_MODULES')
 	enabledModules: ModuleArray = [];
 
-	/** Comma-separated list of all disabled modules. */
+	/**
+	 * Comma-separated list of all disabled modules.
+	 *
+	 * Voyagr ships with `insights` off: it reports on automation executions,
+	 * which is not what a trip is.
+	 */
 	@Env('N8N_DISABLED_MODULES')
-	disabledModules: ModuleArray = [];
+	disabledModules: ModuleArray = ['insights'];
 }
