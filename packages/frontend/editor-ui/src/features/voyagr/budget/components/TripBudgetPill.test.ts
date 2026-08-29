@@ -51,6 +51,29 @@ describe('TripBudgetPill', () => {
 		expect(getByText('Option 3')).toBeVisible();
 	});
 
+	it('keeps the Option label for a lone survivor among unpriced siblings', () => {
+		// A three-option AI plan where only option 2 has anything priced yet.
+		branches.value = [
+			{ index: 1, total: 0 },
+			{ index: 2, total: 300 },
+			{ index: 3, total: 0 },
+		];
+		budget.value = 1000;
+		currency.value = 'USD';
+
+		const { getByTestId, getByText, queryByText, container } = renderComponent();
+
+		expect(getByTestId('trip-budget-pill')).toBeVisible();
+		// Only the one priced branch renders.
+		expect(container.querySelectorAll('progress')).toHaveLength(1);
+		// The label is gated on the total branch count (3), not the surviving
+		// segment count (1), so the lone survivor still reads its true
+		// upstream index rather than going unlabelled.
+		expect(getByText('Option 2')).toBeVisible();
+		expect(queryByText('Option 1')).toBeNull();
+		expect(queryByText('Option 3')).toBeNull();
+	});
+
 	it.each([0, -100])(
 		'shows the planned total and no-budget notice when the budget is unset (%i)',
 		(unsetBudget) => {
