@@ -4598,6 +4598,7 @@
 	"voyagr.budget.planned": "{amount} planned",
 	"voyagr.budget.noBudget": "No budget set",
 	"voyagr.budget.option": "Option {index}",
+	"voyagr.feedback.sidebar": "Send feedback",
 	"workflows.item.readonly": "Read only",
 	"workflows.item.archived": "Archived",
 	"workflows.item.availableInMCP": "Available in MCP",

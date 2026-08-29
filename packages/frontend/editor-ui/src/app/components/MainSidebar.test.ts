@@ -11,8 +11,6 @@ import { useUsersStore } from '@/features/settings/users/users.store';
 import { useTemplatesStore } from '@/features/workflows/templates/templates.store';
 import { usePersonalizedTemplatesV2Store } from '@/experiments/templateRecoV2/stores/templateRecoV2.store';
 import { usePersonalizedTemplatesV3Store } from '@/experiments/personalizedTemplatesV3/stores/personalizedTemplatesV3.store';
-import type { Version } from '@n8n/rest-api-client/api/versions';
-import { ABOUT_MODAL_KEY, WHATS_NEW_MODAL_KEY } from '@/app/constants';
 
 vi.mock('vue-router', () => ({
 	useRouter: () => ({
@@ -30,18 +28,6 @@ let usersStore: MockedStore<typeof useUsersStore>;
 let templatesStore: MockedStore<typeof useTemplatesStore>;
 let personalizedTemplatesV2Store: MockedStore<typeof usePersonalizedTemplatesV2Store>;
 let personalizedTemplatesV3Store: MockedStore<typeof usePersonalizedTemplatesV3Store>;
-
-const mockVersion: Version = {
-	name: '1.2.0',
-	nodes: [],
-	createdAt: '2025-01-01T00:00:00Z',
-	description: 'Test version',
-	documentationUrl: 'https://docs.n8n.io',
-	hasBreakingChange: false,
-	hasSecurityFix: false,
-	hasSecurityIssue: false,
-	securityIssueFixVersion: '',
-};
 
 describe('MainSidebar', () => {
 	beforeEach(() => {
@@ -74,43 +60,6 @@ describe('MainSidebar', () => {
 
 	it('renders the sidebar without error', () => {
 		expect(() => renderComponent()).not.toThrow();
-	});
-
-	describe('Version Update CTA', () => {
-		it('should not render version update CTA when hasVersionUpdates is false', () => {
-			versionsStore.hasVersionUpdates = false;
-			usersStore.canUserUpdateVersion = true;
-
-			const { queryByTestId } = renderComponent();
-
-			expect(queryByTestId('version-update-cta-button')).not.toBeInTheDocument();
-		});
-
-		it('should not render version update CTA when canUserUpdateVersion is false', async () => {
-			versionsStore.hasVersionUpdates = true;
-			versionsStore.nextVersions = [mockVersion];
-			usersStore.canUserUpdateVersion = false;
-
-			const { queryByTestId, getByText } = renderComponent();
-
-			getByText('Help').click();
-
-			expect(queryByTestId('version-update-cta-button')).not.toBeInTheDocument();
-		});
-
-		it('should render version update CTA enabled when canUserUpdateVersion is true and hasVersionUpdates is true', async () => {
-			versionsStore.hasVersionUpdates = true;
-			versionsStore.nextVersions = [mockVersion];
-			usersStore.canUserUpdateVersion = true;
-
-			const { getByText, findByTestId } = renderComponent();
-
-			getByText('Help').click();
-
-			const updateButton = await findByTestId('version-update-cta-button');
-			expect(updateButton).toBeInTheDocument();
-			expect(updateButton).toBeEnabled();
-		});
 	});
 
 	describe('mainMenuItems', () => {
@@ -149,61 +98,16 @@ describe('MainSidebar', () => {
 			expect(templatesItems).toHaveLength(0);
 		});
 
-		it('should show help menu item', () => {
+		it('should show feedback menu item', () => {
 			const { getByTestId } = renderComponent();
 
-			expect(getByTestId('main-sidebar-help')).toBeInTheDocument();
+			expect(getByTestId('main-sidebar-feedback')).toBeInTheDocument();
 		});
 
 		it('should show settings menu item', () => {
 			const { getByTestId } = renderComponent();
 
 			expect(getByTestId('main-sidebar-settings')).toBeInTheDocument();
-		});
-	});
-
-	describe('handleSelect', () => {
-		beforeEach(() => {
-			uiStore.openModal = vi.fn();
-			uiStore.openModalWithData = vi.fn();
-			personalizedTemplatesV3Store.markTemplateRecommendationInteraction = vi.fn();
-		});
-
-		it('should open about modal when about is selected', async () => {
-			const { getByText, findByText } = renderComponent();
-
-			getByText('Help').click();
-			const aboutItem = await findByText('About n8n');
-			aboutItem.click();
-
-			expect(uiStore.openModal).toHaveBeenCalledWith(ABOUT_MODAL_KEY);
-		});
-
-		it('should open whats new modal when whats new article is selected', async () => {
-			versionsStore.hasVersionUpdates = true;
-			versionsStore.whatsNewArticles = [
-				{
-					id: 123,
-					title: 'Test Article',
-					content: 'Test content',
-					createdAt: '2025-01-01T00:00:00Z',
-					updatedAt: null,
-					publishedAt: '2025-01-01T00:00:00Z',
-				},
-			];
-
-			const { getByText, findByText } = renderComponent();
-
-			getByText('Help').click();
-			const articleItem = await findByText('Test Article');
-			articleItem.click();
-
-			expect(uiStore.openModalWithData).toHaveBeenCalledWith({
-				name: WHATS_NEW_MODAL_KEY,
-				data: {
-					articleId: 123,
-				},
-			});
 		});
 	});
 });

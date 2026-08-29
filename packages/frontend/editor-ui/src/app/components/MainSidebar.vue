@@ -3,17 +3,14 @@ import { computed, onBeforeUnmount, onMounted, ref, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router';
 import { useI18n } from '@n8n/i18n';
 import { N8nScrollArea, N8nResizeWrapper, type IMenuItem } from '@n8n/design-system';
-import { ABOUT_MODAL_KEY, VIEWS, WHATS_NEW_MODAL_KEY } from '@/app/constants';
-import { EXTERNAL_LINKS } from '@/app/constants/externalLinks';
+import { LOCAL_STORAGE_SIDEBAR_WIDTH, VIEWS } from '@/app/constants';
 import { hasPermission } from '@/app/utils/rbac/permissions';
 import { useRootStore } from '@n8n/stores/useRootStore';
 import { useCloudPlanStore } from '@/app/stores/cloudPlan.store';
 import { useSettingsStore } from '@/app/stores/settings.store';
 import { useTemplatesStore } from '@/features/workflows/templates/templates.store';
 import { useUIStore } from '@/app/stores/ui.store';
-import { useVersionsStore } from '@/app/stores/versions.store';
 import { useTelemetry } from '@/app/composables/useTelemetry';
-import { useBugReporting } from '@/app/composables/useBugReporting';
 import { usePageRedirectionHelper } from '@/app/composables/usePageRedirectionHelper';
 import { useKeybindings } from '@/app/composables/useKeybindings';
 import { useSidebarLayout } from '@/app/composables/useSidebarLayout';
@@ -24,25 +21,20 @@ import BottomMenu from '@/app/components/BottomMenu.vue';
 import MainSidebarSourceControl from '@/app/components/MainSidebarSourceControl.vue';
 import ProjectNavigation from '@/features/collaboration/projects/components/ProjectNavigation.vue';
 import { useResourceCenterStore } from '@/experiments/resourceCenter/stores/resourceCenter.store';
-import { LOCAL_STORAGE_SIDEBAR_WIDTH } from '@/app/constants';
 import { useSidebarExpandedExperiment } from '@/experiments/sidebarExpanded';
 import { trackTemplatesClick, TemplateClickSource } from '@/experiments/utils';
-import { injectWorkflowDocumentStore } from '../stores/workflowDocument.store';
 
 const cloudPlanStore = useCloudPlanStore();
 const rootStore = useRootStore();
 const settingsStore = useSettingsStore();
 const templatesStore = useTemplatesStore();
 const uiStore = useUIStore();
-const versionsStore = useVersionsStore();
-const workflowDocumentStore = injectWorkflowDocumentStore();
 const resourceCenterStore = useResourceCenterStore();
 
 const i18n = useI18n();
 const router = useRouter();
 const telemetry = useTelemetry();
 const pageRedirectionHelper = usePageRedirectionHelper();
-const { getReportingURL } = useBugReporting();
 
 const { applyExperiment: applySidebarExpandedExperiment } = useSidebarExpandedExperiment();
 applySidebarExpandedExperiment();
@@ -75,14 +67,6 @@ const scrollAreaRef = ref<InstanceType<typeof N8nScrollArea>>();
 const hasOverflow = ref(false);
 const hasScrolledFromTop = ref(false);
 let resizeObserver: ResizeObserver | null = null;
-
-const showWhatsNewNotification = computed(
-	() =>
-		versionsStore.hasVersionUpdates ||
-		versionsStore.whatsNewArticles.some(
-			(article) => !versionsStore.isWhatsNewArticleRead(article.id),
-		),
-);
 
 const isResourceCenterEnabled = computed(() => resourceCenterStore.isFeatureEnabled());
 
@@ -141,64 +125,11 @@ const mainMenuItems = computed<IMenuItem[]>(() => [
 			hasPermission(['rbac'], { rbac: { scope: 'insights:list' } }),
 	},
 	{
-		id: 'help',
-		icon: 'circle-help',
-		label: i18n.baseText('mainSidebar.help'),
-		notification: showWhatsNewNotification.value,
+		id: 'feedback',
+		icon: 'message-square',
+		label: i18n.baseText('voyagr.feedback.sidebar'),
 		position: 'bottom',
-		children: [
-			{
-				id: 'quickstart',
-				icon: 'video',
-				label: i18n.baseText('mainSidebar.helpMenuItems.quickstart'),
-				link: {
-					href: EXTERNAL_LINKS.QUICKSTART_VIDEO,
-					target: '_blank',
-				},
-			},
-			{
-				id: 'docs',
-				icon: 'book',
-				label: i18n.baseText('mainSidebar.helpMenuItems.documentation'),
-				link: {
-					href: EXTERNAL_LINKS.DOCUMENTATION,
-					target: '_blank',
-				},
-			},
-			{
-				id: 'forum',
-				icon: 'users',
-				label: i18n.baseText('mainSidebar.helpMenuItems.forum'),
-				link: {
-					href: EXTERNAL_LINKS.FORUM,
-					target: '_blank',
-				},
-			},
-			{
-				id: 'examples',
-				icon: 'graduation-cap',
-				label: i18n.baseText('mainSidebar.helpMenuItems.course'),
-				link: {
-					href: EXTERNAL_LINKS.COURSES,
-					target: '_blank',
-				},
-			},
-			{
-				id: 'report-bug',
-				icon: 'bug',
-				label: i18n.baseText('mainSidebar.helpMenuItems.reportBug'),
-				link: {
-					href: getReportingURL(),
-					target: '_blank',
-				},
-			},
-			{
-				id: 'about',
-				icon: 'info',
-				label: i18n.baseText('mainSidebar.aboutN8n'),
-				position: 'bottom',
-			},
-		],
+		available: true,
 	},
 	{
 		id: 'settings',
@@ -260,13 +191,6 @@ onBeforeUnmount(() => {
 	window.removeEventListener('resize', checkOverflow);
 });
 
-const trackHelpItemClick = (itemType: string) => {
-	telemetry.track('User clicked help resource', {
-		type: itemType,
-		workflow_id: workflowDocumentStore.value.workflowId,
-	});
-};
-
 function openCommandBar(event: MouseEvent) {
 	event.stopPropagation();
 
@@ -284,20 +208,8 @@ function openCommandBar(event: MouseEvent) {
 
 const handleSelect = (key: string) => {
 	switch (key) {
-		case 'about': {
-			trackHelpItemClick('about');
-			uiStore.openModal(ABOUT_MODAL_KEY);
-			break;
-		}
 		case 'cloud-admin': {
 			void pageRedirectionHelper.goToDashboard();
-			break;
-		}
-		case 'quickstart':
-		case 'docs':
-		case 'forum':
-		case 'examples': {
-			trackHelpItemClick(key);
 			break;
 		}
 		case 'templates':
@@ -307,20 +219,6 @@ const handleSelect = (key: string) => {
 			telemetry.track('User clicked insights link from side menu');
 			break;
 		default:
-			if (key.startsWith('whats-new-article-')) {
-				const articleId = Number(key.replace('whats-new-article-', ''));
-
-				telemetry.track("User clicked on what's new section", {
-					article_id: articleId,
-				});
-				uiStore.openModalWithData({
-					name: WHATS_NEW_MODAL_KEY,
-					data: {
-						articleId,
-					},
-				});
-			}
-
 			break;
 	}
 };
@@ -330,7 +228,6 @@ const onLogout = () => {
 };
 
 useKeybindings({
-	ctrl_alt_o: () => handleSelect('about'),
 	['bracketleft']: () => toggleCollapse(),
 });
 </script>

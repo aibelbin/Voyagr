@@ -203,7 +203,18 @@ export function useSettingsItems() {
 		return menuItems.concat(moduleItems.filter((item) => !menuItems.some((m) => m.id === item.id)));
 	});
 
-	const visibleSettingsItems = computed(() => settingsItems.value.filter((item) => item.available));
+	/**
+	 * Voyagr keeps only the settings a traveller needs. The rest of n8n's
+	 * settings menu is instance administration for an automation tool.
+	 *
+	 * Filtered rather than deleted: the item definitions stay upstream-shaped, so
+	 * merges from n8n stay clean and re-enabling one is a single line.
+	 */
+	const VOYAGR_SETTINGS = new Set(['settings-personal', 'settings-users']);
+
+	const visibleSettingsItems = computed(() =>
+		settingsItems.value.filter((item) => item.available && VOYAGR_SETTINGS.has(item.id)),
+	);
 
 	return { settingsItems: visibleSettingsItems };
 }
