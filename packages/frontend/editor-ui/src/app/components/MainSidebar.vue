@@ -3,7 +3,11 @@ import { computed, onBeforeUnmount, onMounted, ref, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router';
 import { useI18n } from '@n8n/i18n';
 import { N8nScrollArea, N8nResizeWrapper, type IMenuItem } from '@n8n/design-system';
-import { LOCAL_STORAGE_SIDEBAR_WIDTH, VIEWS } from '@/app/constants';
+import {
+	LOCAL_STORAGE_SIDEBAR_WIDTH,
+	VIEWS,
+	VOYAGR_FEEDBACK_MODAL_KEY,
+} from '@/app/constants';
 import { hasPermission } from '@/app/utils/rbac/permissions';
 import { useRootStore } from '@n8n/stores/useRootStore';
 import { useCloudPlanStore } from '@/app/stores/cloudPlan.store';
@@ -218,6 +222,10 @@ const handleSelect = (key: string) => {
 		case 'insights':
 			telemetry.track('User clicked insights link from side menu');
 			break;
+		case 'feedback': {
+			uiStore.openModal(VOYAGR_FEEDBACK_MODAL_KEY);
+			break;
+		}
 		default:
 			break;
 	}

@@ -42,6 +42,7 @@ import {
 	INSTANCE_AI_TOOLS_CONNECTION_MODAL_KEY,
 	AI_GATEWAY_TOP_UP_MODAL_KEY,
 	AGENT_CONFIRMATION_MODAL_KEY,
+	VOYAGR_FEEDBACK_MODAL_KEY,
 } from '@/app/constants';
 import {
 	ANNOTATION_TAGS_MANAGER_MODAL_KEY,
@@ -143,6 +144,7 @@ import InstanceAiCredentialSetupModal, {
 	type InstanceAiCredentialSetupModalData,
 } from '@/features/ai/instanceAi/components/InstanceAiCredentialSetupModal.vue';
 import InstanceAiToolsConnectionModalWrapper from '@/features/ai/instanceAi/components/modals/InstanceAiToolsConnectionModalWrapper.vue';
+import FeedbackModal from '@/features/voyagr/feedback/components/FeedbackModal.vue';
 </script>
 
 <template>
@@ -549,6 +551,10 @@ import InstanceAiToolsConnectionModalWrapper from '@/features/ai/instanceAi/comp
 
 		<ModalRoot :name="AI_GATEWAY_TOP_UP_MODAL_KEY">
 			<AiGatewayTopUpModal />
+		</ModalRoot>
+
+		<ModalRoot :name="VOYAGR_FEEDBACK_MODAL_KEY">
+			<FeedbackModal />
 		</ModalRoot>
 
 		<!-- Dynamic modals from modules -->
