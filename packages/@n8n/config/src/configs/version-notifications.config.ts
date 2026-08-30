@@ -2,9 +2,9 @@ import { Config, Env } from '../decorators';
 
 @Config
 export class VersionNotificationsConfig {
-	/** Whether to check for and show in-app notifications about new n8n versions. */
+	/** Whether to check for and show in-app notifications about new n8n versions. All endpoints below point at api.n8n.io, unused by Voyagr, so defaults off (also disables "What's New" below). */
 	@Env('N8N_VERSION_NOTIFICATIONS_ENABLED')
-	enabled: boolean = true;
+	enabled: boolean = false;
 
 	/** URL used to fetch current n8n version information. */
 	@Env('N8N_VERSION_NOTIFICATIONS_ENDPOINT')
