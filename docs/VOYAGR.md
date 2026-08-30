@@ -112,6 +112,26 @@ Plus **Start Trip** (trigger) and **Sticky Note** (annotations).
   instead of free text. Only Groq's `gpt-oss` family supports it — every other
   free model there is loose JSON mode at best.
 
+**Trip budget:**
+- A per-node cost chip (`NodeBudgetChip.vue`) on each canvas node shows that
+  stop's price and its share of Start Trip's budget as a percentage; a
+  per-kind formula (`tripCost.ts`) multiplies flights, meals, and activities
+  by `travellers`, while a hotel room or rental car charges once for the
+  whole party (already a per-party total) and Shopping is a lump sum the
+  traveller set themselves.
+- A floating pill (`TripBudgetPill.vue`) replaces the old executions bar and
+  totals each itinerary branch **separately** — a generated trip's options are
+  alternatives to compare, not one canvas to sum. A branch turns red once its
+  own total passes the budget; sibling branches stay unaffected. Clearing the
+  budget switches every chip and segment to a plain amount with no percentage
+  or over/under badge, and an unpriced branch gets no segment at all (a
+  three-option AI plan with one option still unpriced still shows pills for
+  the other two, correctly labelled "Option 2"/"Option 3").
+- `computeTripBudget` (`tripBudget.ts`) is the pure model: it reads Start
+  Trip's `budget`/`currency`/`travellers` and walks `getChildNodes` per branch
+  (via `n8n-workflow`'s traversal utilities) to price each option separately;
+  `useTripBudget()` wraps it reactively for the two components above.
+
 ---
 
 ## 3. Where things live (key files)
@@ -202,6 +222,13 @@ Plus **Start Trip** (trigger) and **Sticky Note** (annotations).
 - **Groq free tier is 8,000 tokens/min, input and output combined.** That is the real constraint on trip generation, not context size. The prompt sends a trimmed place list (id, name, kind, rating, price tier — no blurbs or URLs) and caps completion tokens; worst case measures ~6.4k.
 - **Groq strict mode accepts only a subset of JSON Schema.** Every object needs `additionalProperties: false` and every property in `required`; `minItems`/`maxItems` are rejected, so array cardinality is enforced in code after parsing, not in the schema.
 - **Playwright's `getByTestId` defaults to `data-testid`, but n8n uses `data-test-id`.** Call `selectors.setTestIdAttribute('data-test-id')` in throwaway scripts, or match `[data-test-id="..."]` directly. Also: element-plus components (`ElDatePicker`) swallow the attribute rather than forwarding it.
+- **The browser-id check 401s any URL a browser fetches for itself** (`<img>`,
+  `<embed>`, EventSource) — it can't carry a custom header. New routes of that
+  shape need an entry in `AuthService.skipBrowserIdCheckEndpoints`. The
+  symptom is indistinguishable from a bad API key: the asset simply never
+  loads.
+- **The Templates sidebar entry is reserved for Voyagr's preset vacation
+  packages.** It is not leftover n8n — do not strip it.
 
 ---
 
@@ -248,9 +275,10 @@ n8n is under the **Sustainable Use License** (`LICENSE.md`). Voyagr must stay
   nodes) from inputs like destination/budget/dates.
 - **Deeper terminology rebrand** — "workflow"/"execution" wording still appears in
   breadcrumbs, menus, and the editor itself; swap to trip/itinerary language.
-- **Node execution semantics / budget** — nodes currently just pass their data
-  through on execute; a "Plan trip" run could compute totals (budget), build a
-  day-by-day summary, etc.
+- **Trips-page spend rollup** — the canvas now prices every node and itinerary
+  branch against Start Trip's budget (§2, "Trip budget"); rolling that spend up
+  onto the My Trips overview cards, alongside the existing stats strip, is the
+  remaining piece.
 - **Trim the vendored n8n** to a lighter, frontend-focused repo (optional; the repo
   currently carries the full n8n monorepo).
 - Real per-node travel icons (SVGs are simple line icons today).
