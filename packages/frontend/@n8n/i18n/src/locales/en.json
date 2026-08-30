@@ -4604,6 +4604,7 @@
 	"voyagr.feedback.placeholder": "What would make Voyagr better?",
 	"voyagr.feedback.submit": "Send",
 	"voyagr.feedback.thanks": "Thanks for the feedback.",
+	"voyagr.feedback.error": "Couldn't send your feedback. You can try again.",
 	"workflows.item.readonly": "Read only",
 	"workflows.item.archived": "Archived",
 	"workflows.item.availableInMCP": "Available in MCP",

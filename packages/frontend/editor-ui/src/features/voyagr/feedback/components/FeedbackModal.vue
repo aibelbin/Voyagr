@@ -29,6 +29,9 @@ async function onSubmit(): Promise<void> {
 		toast.showMessage({ title: i18n.baseText('voyagr.feedback.thanks'), type: 'success' });
 		text.value = '';
 		uiStore.closeModal(VOYAGR_FEEDBACK_MODAL_KEY);
+	} catch (error) {
+		// Keep the text and the modal open so the person can retry without retyping.
+		toast.showError(error, i18n.baseText('voyagr.feedback.error'));
 	} finally {
 		submitting.value = false;
 	}
