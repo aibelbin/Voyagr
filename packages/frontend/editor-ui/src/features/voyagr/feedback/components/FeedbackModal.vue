@@ -47,7 +47,7 @@ async function onSubmit(): Promise<void> {
 		data-test-id="voyagr-feedback-modal"
 	>
 		<template #content>
-			<N8nInputLabel :label="i18n.baseText('voyagr.feedback.title')" input-name="voyagr-feedback">
+			<N8nInputLabel :label="i18n.baseText('voyagr.feedback.label')" input-name="voyagr-feedback">
 				<N8nInput
 					id="voyagr-feedback"
 					v-model="text"

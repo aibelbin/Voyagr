@@ -11,7 +11,7 @@ export type TripTastes = {
 	terrain: number;
 };
 
-/** Everything the five-field form collects. */
+/** Everything the six-field form collects. */
 export type TripGenerationRequest = {
 	destination: string;
 	startLocation: string;

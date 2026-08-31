@@ -2,7 +2,7 @@ import { Z } from '@n8n/api-types';
 import { z } from 'zod';
 
 /**
- * Everything the five-field form collects.
+ * Everything the six-field form collects.
  *
  * `@Body` needs a class carrying a `safeParse` for the controller registry to
  * inject it at all, so this mirrors `TripGenerationRequest` as a zod class.

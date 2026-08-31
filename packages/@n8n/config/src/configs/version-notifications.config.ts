@@ -2,7 +2,7 @@ import { Config, Env } from '../decorators';
 
 @Config
 export class VersionNotificationsConfig {
-	/** Whether to check for and show in-app notifications about new n8n versions. All endpoints below point at api.n8n.io, unused by Voyagr, so defaults off (also disables "What's New" below). */
+	/** Whether to check for and show in-app notifications about new n8n versions. All endpoints below point at api.n8n.io, unused by Voyagr, so defaults off. Re-enabling this does not bring back "What's New" on its own — that has its own switch below, also defaulted off. */
 	@Env('N8N_VERSION_NOTIFICATIONS_ENABLED')
 	enabled: boolean = false;
 
@@ -10,9 +10,9 @@ export class VersionNotificationsConfig {
 	@Env('N8N_VERSION_NOTIFICATIONS_ENDPOINT')
 	endpoint: string = 'https://api.n8n.io/api/versions/';
 
-	/** Whether to fetch and show "What's New" content. Requires version notifications to be enabled. */
+	/** Whether to fetch and show "What's New" content. Requires version notifications to be enabled; unused by Voyagr, so defaults off. */
 	@Env('N8N_VERSION_NOTIFICATIONS_WHATS_NEW_ENABLED')
-	whatsNewEnabled: boolean = true;
+	whatsNewEnabled: boolean = false;
 
 	/** URL used to fetch "What's New" articles. */
 	@Env('N8N_VERSION_NOTIFICATIONS_WHATS_NEW_ENDPOINT')

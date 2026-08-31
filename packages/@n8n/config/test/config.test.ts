@@ -209,7 +209,7 @@ describe('GlobalConfig', () => {
 		versionNotifications: {
 			enabled: false,
 			endpoint: 'https://api.n8n.io/api/versions/',
-			whatsNewEnabled: true,
+			whatsNewEnabled: false,
 			whatsNewEndpoint: 'https://api.n8n.io/api/whats-new',
 			infoUrl: 'https://docs.n8n.io/hosting/installation/updating/',
 		},
