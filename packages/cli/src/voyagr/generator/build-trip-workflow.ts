@@ -2,6 +2,8 @@ import type { GeneratedTripOption, PlaceKind, PlaceResult } from '@n8n/api-types
 import type { IConnections, INode } from 'n8n-workflow';
 import { NodeConnectionTypes } from 'n8n-workflow';
 
+import { priceTierCost } from './price-tier-cost';
+
 export type TripWorkflowParams = {
 	startLocation: string;
 	destination: string;
@@ -99,6 +101,13 @@ export function buildTripWorkflow(
 					rating: place.rating ?? 0,
 					priceTier: place.priceTier ?? 0,
 					photoUrl: place.photoUrl ?? '',
+					// Hotel cost prices per night, defaulting to one when `nights` is
+					// absent (see tripCost.ts). A branch can list more than one hotel
+					// and `dayOffset` marks a visit day, not a checkout, so there's no
+					// reliable way to attribute nights per stop here — `nights` is
+					// deliberately left unset rather than guessed, to avoid
+					// double-counting.
+					...priceTierCost(stop.kind, place.priceTier),
 				},
 			});
 

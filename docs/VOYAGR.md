@@ -105,6 +105,11 @@ Plus **Start Trip** (trigger) and **Sticky Note** (annotations).
   so a hallucinated hotel is structurally impossible. A pure materialiser
   (`packages/cli/src/voyagr/generator/build-trip-workflow.ts`) turns the result
   into workflow JSON.
+- The model itself never sets a price — it only picks places. Each generated
+  stop's cost is estimated locally and deterministically from the place's
+  Google price tier (`packages/cli/src/voyagr/generator/price-tier-cost.ts`),
+  on the same parameter the manual-add flow and `tripCost.ts` price it on. A
+  place with no price tier gets no cost field, same as a hand-added one.
 - `openai/gpt-oss-120b` on Groq's free tier via the `openai` SDK against
   `https://api.groq.com/openai/v1`, using strict JSON-schema structured output.
   Key is `VOYAGR_GROQ_KEY` in deployment env, never shown to users.
@@ -119,14 +124,15 @@ Plus **Start Trip** (trigger) and **Sticky Note** (annotations).
   by `travellers`, while a hotel room or rental car charges once for the
   whole party (already a per-party total) and Shopping is a lump sum the
   traveller set themselves.
-- A floating pill (`TripBudgetPill.vue`) replaces the old executions bar and
-  totals each itinerary branch **separately** — a generated trip's options are
-  alternatives to compare, not one canvas to sum. A branch turns red once its
-  own total passes the budget; sibling branches stay unaffected. Clearing the
-  budget switches every chip and segment to a plain amount with no percentage
-  or over/under badge, and an unpriced branch gets no segment at all (a
+- A floating pill (`TripBudgetPill.vue`) fills the header bar the editor tab
+  row vacated, and totals each itinerary branch **separately** — a generated
+  trip's options are alternatives to compare, not one canvas to sum. A branch
+  turns red once its own total passes the budget; sibling branches stay
+  unaffected. Clearing the budget switches every chip and segment to a plain
+  amount with no percentage or over/under badge, and an unpriced branch (every
+  stop in it lacking a cost — e.g. no price tier) gets no segment at all: a
   three-option AI plan with one option still unpriced still shows pills for
-  the other two, correctly labelled "Option 2"/"Option 3").
+  the other two, correctly labelled "Option 2"/"Option 3".
 - `computeTripBudget` (`tripBudget.ts`) is the pure model: it reads Start
   Trip's `budget`/`currency`/`travellers` and walks `getChildNodes` per branch
   (via `n8n-workflow`'s traversal utilities) to price each option separately;

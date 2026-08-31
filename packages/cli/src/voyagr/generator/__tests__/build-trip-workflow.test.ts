@@ -1,5 +1,10 @@
 import type { GeneratedTripOption, PlaceResult } from '@n8n/api-types';
 
+// Reaches across into the frontend package on purpose: this is the same pure
+// cost function the budget pill and node chips call, so pricing a generated
+// stop through it proves the wiring end to end rather than re-asserting a
+// hardcoded expectation that could drift from the real formula.
+import { nodeCost } from '../../../../../frontend/editor-ui/src/features/voyagr/budget/tripCost';
 import { buildTripWorkflow } from '../build-trip-workflow';
 
 const params = {
@@ -123,6 +128,32 @@ describe('buildTripWorkflow', () => {
 		const trigger = nodes.find((node) => node.type === 'n8n-nodes-base.tripStart');
 
 		expect(trigger?.parameters).toMatchObject({ travellers: 2 });
+	});
+
+	it('writes a cost that prices non-zero through the same formula the budget pill uses', () => {
+		const { nodes } = buildTripWorkflow(params, options, placesById);
+		const hotel = nodes.find((node) => node.name === 'Granbell');
+
+		expect(hotel?.parameters.pricePerNight).toBe(120);
+		expect(nodeCost(hotel!.type, hotel!.parameters, params.travellers)).toBe(120);
+	});
+
+	it('writes no cost field when the place has no price tier', () => {
+		const untiered: PlaceResult = { ...place('fsq:4', 'Untiered Inn'), priceTier: undefined };
+		const withUntiered = new Map(placesById).set('fsq:4', untiered);
+		const optionsWithUntiered: GeneratedTripOption[] = [
+			{
+				name: 'No signal',
+				rationale: 'Place carries no price tier.',
+				stops: [{ providerId: 'fsq:4', kind: 'hotel', dayOffset: 0 }],
+			},
+		];
+
+		const { nodes } = buildTripWorkflow(params, optionsWithUntiered, withUntiered);
+		const hotel = nodes.find((node) => node.name === 'Untiered Inn');
+
+		expect(hotel?.parameters.pricePerNight).toBeUndefined();
+		expect(nodeCost(hotel!.type, hotel!.parameters, params.travellers)).toBe(0);
 	});
 
 	it('gives duplicate place names distinct node names', () => {
