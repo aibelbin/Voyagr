@@ -3,9 +3,8 @@ import { useRouter } from 'vue-router';
 import { useI18n } from '@n8n/i18n';
 import { N8nIcon } from '@n8n/design-system';
 import { useUIStore } from '@/app/stores/ui.store';
-import { WHATS_NEW_MODAL_KEY, VIEWS, ABOUT_MODAL_KEY } from '@/app/constants';
-import { EXTERNAL_LINKS } from '@/app/constants/externalLinks';
-import { useBugReporting } from '@/app/composables/useBugReporting';
+import { VIEWS, VOYAGR_FEEDBACK_MODAL_KEY } from '@/app/constants';
+import { hasPermission } from '@/app/utils/rbac/permissions';
 import type { CommandGroup, CommandBarItem } from '../types';
 import { CHAT_VIEW } from '@/features/ai/chatHub/constants';
 import { useSettingsStore } from '@/app/stores/settings.store';
@@ -14,18 +13,12 @@ import { useTemplatesStore } from '@/features/workflows/templates/templates.stor
 
 const ITEM_ID = {
 	CHAT_HUB: 'chat-hub',
-	WHATS_NEW: 'whats-new',
 	SETTINGS: 'settings',
 	SIGN_OUT: 'sign-out',
 	TEMPLATES: 'templates',
 	VARIABLES: 'variables',
 	INSIGHTS: 'insights',
-	QUICKSTART: 'quickstart',
-	DOCUMENTATION: 'documentation',
-	FORUM: 'forum',
-	COURSE: 'course',
-	REPORT_BUG: 'report-bug',
-	ABOUT: 'about',
+	FEEDBACK: 'feedback',
 } as const;
 
 export function useGenericCommands(): CommandGroup {
@@ -35,27 +28,8 @@ export function useGenericCommands(): CommandGroup {
 	const settingsStore = useSettingsStore();
 	const projectsStore = useProjectsStore();
 	const templatesStore = useTemplatesStore();
-	const { getReportingURL } = useBugReporting();
 
 	const genericCommands = computed<CommandBarItem[]>(() => [
-		{
-			id: ITEM_ID.WHATS_NEW,
-			title: i18n.baseText('mainSidebar.whatsNew'),
-			section: i18n.baseText('commandBar.sections.general'),
-			handler: () => {
-				uiStore.openModal(WHATS_NEW_MODAL_KEY);
-			},
-			icon: {
-				component: N8nIcon,
-				props: {
-					icon: 'bell',
-				},
-			},
-			keywords: [
-				i18n.baseText('mainSidebar.whatsNew').toLowerCase(),
-				i18n.baseText('mainSidebar.whatsNew.fullChangelog').toLowerCase(),
-			],
-		},
 		...(settingsStore.isChatFeatureEnabled
 			? [
 					{
@@ -117,7 +91,9 @@ export function useGenericCommands(): CommandGroup {
 					},
 				]
 			: []),
-		...(projectsStore.canViewProjects
+		...(projectsStore.canViewProjects &&
+		settingsStore.isModuleActive('insights') &&
+		hasPermission(['rbac'], { rbac: { scope: 'insights:list' } })
 			? [
 					{
 						id: ITEM_ID.INSIGHTS,
@@ -137,94 +113,19 @@ export function useGenericCommands(): CommandGroup {
 				]
 			: []),
 		{
-			id: ITEM_ID.QUICKSTART,
-			title: i18n.baseText('mainSidebar.helpMenuItems.quickstart'),
-			section: i18n.baseText('mainSidebar.help'),
+			id: ITEM_ID.FEEDBACK,
+			title: i18n.baseText('voyagr.feedback.sidebar'),
+			section: i18n.baseText('commandBar.sections.general'),
 			handler: () => {
-				window.open(EXTERNAL_LINKS.QUICKSTART_VIDEO, '_blank', 'noreferrer');
+				uiStore.openModal(VOYAGR_FEEDBACK_MODAL_KEY);
 			},
 			icon: {
 				component: N8nIcon,
 				props: {
-					icon: 'video',
+					icon: 'message-square',
 				},
 			},
-			keywords: [i18n.baseText('mainSidebar.helpMenuItems.quickstart').toLowerCase()],
-		},
-		{
-			id: ITEM_ID.DOCUMENTATION,
-			title: i18n.baseText('mainSidebar.helpMenuItems.documentation'),
-			section: i18n.baseText('mainSidebar.help'),
-			handler: () => {
-				window.open(EXTERNAL_LINKS.DOCUMENTATION, '_blank', 'noreferrer');
-			},
-			icon: {
-				component: N8nIcon,
-				props: {
-					icon: 'book',
-				},
-			},
-			keywords: [i18n.baseText('mainSidebar.helpMenuItems.documentation').toLowerCase()],
-		},
-		{
-			id: ITEM_ID.FORUM,
-			title: i18n.baseText('mainSidebar.helpMenuItems.forum'),
-			section: i18n.baseText('mainSidebar.help'),
-			handler: () => {
-				window.open(EXTERNAL_LINKS.FORUM, '_blank', 'noreferrer');
-			},
-			icon: {
-				component: N8nIcon,
-				props: {
-					icon: 'users',
-				},
-			},
-			keywords: [i18n.baseText('mainSidebar.helpMenuItems.forum').toLowerCase()],
-		},
-		{
-			id: ITEM_ID.COURSE,
-			title: i18n.baseText('mainSidebar.helpMenuItems.course'),
-			section: i18n.baseText('mainSidebar.help'),
-			handler: () => {
-				window.open(EXTERNAL_LINKS.COURSES, '_blank', 'noreferrer');
-			},
-			icon: {
-				component: N8nIcon,
-				props: {
-					icon: 'graduation-cap',
-				},
-			},
-			keywords: [i18n.baseText('mainSidebar.helpMenuItems.course').toLowerCase()],
-		},
-		{
-			id: ITEM_ID.REPORT_BUG,
-			title: i18n.baseText('mainSidebar.helpMenuItems.reportBug'),
-			section: i18n.baseText('mainSidebar.help'),
-			handler: () => {
-				window.open(getReportingURL(), '_blank', 'noreferrer');
-			},
-			icon: {
-				component: N8nIcon,
-				props: {
-					icon: 'bug',
-				},
-			},
-			keywords: [i18n.baseText('mainSidebar.helpMenuItems.reportBug').toLowerCase()],
-		},
-		{
-			id: ITEM_ID.ABOUT,
-			title: i18n.baseText('mainSidebar.aboutN8n'),
-			section: i18n.baseText('mainSidebar.help'),
-			handler: () => {
-				uiStore.openModal(ABOUT_MODAL_KEY);
-			},
-			icon: {
-				component: N8nIcon,
-				props: {
-					icon: 'info',
-				},
-			},
-			keywords: [i18n.baseText('mainSidebar.aboutN8n').toLowerCase()],
+			keywords: [i18n.baseText('voyagr.feedback.sidebar').toLowerCase()],
 		},
 		{
 			id: ITEM_ID.SETTINGS,
