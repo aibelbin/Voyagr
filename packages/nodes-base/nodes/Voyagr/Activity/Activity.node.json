@@ -1,0 +1,1 @@
+{ "node": "n8n-nodes-base.activity", "nodeVersion": "1.0", "codexVersion": "1.0", "categories": ["Core Nodes"], "subcategories": { "Core Nodes": ["Experiences"] }, "resources": { "primaryDocumentation": [] }, "alias": ["Activity", "Tour", "Experience", "Adventure", "Class"] }

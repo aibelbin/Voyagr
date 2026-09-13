@@ -1,0 +1,9 @@
+{
+	"node": "n8n-nodes-base.hotel",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Core Nodes"],
+	"subcategories": { "Core Nodes": ["Hotels"] },
+	"resources": { "primaryDocumentation": [] },
+	"alias": ["Hotel", "Stay", "Accommodation", "Lodging", "Resort"]
+}

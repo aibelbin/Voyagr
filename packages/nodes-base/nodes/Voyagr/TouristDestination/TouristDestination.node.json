@@ -1,0 +1,9 @@
+{
+	"node": "n8n-nodes-base.touristDestination",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Core Nodes"],
+	"subcategories": { "Core Nodes": ["Tourist Destinations"] },
+	"resources": { "primaryDocumentation": [] },
+	"alias": ["Attraction", "Sight", "Landmark", "Destination", "Place", "Museum"]
+}

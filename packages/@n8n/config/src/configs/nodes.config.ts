@@ -1,0 +1,57 @@
+import { z } from 'zod';
+
+import { Config, Env } from '../decorators';
+
+function isStringArray(input: unknown): input is string[] {
+	return Array.isArray(input) && input.every((item) => typeof item === 'string');
+}
+
+class JsonStringArray extends Array<string> {
+	constructor(str: string) {
+		super();
+
+		let parsed: unknown;
+
+		try {
+			parsed = JSON.parse(str);
+		} catch {
+			return [];
+		}
+
+		return isStringArray(parsed) ? parsed : [];
+	}
+}
+
+@Config
+export class NodesConfig {
+	/**
+	 * Node types to load. If empty, all available nodes are loaded.
+	 * Voyagr: default to travel nodes only (Manual Trigger + Sticky Note + travel nodes).
+	 * Override with the NODES_INCLUDE env var (JSON array) or set it to `[]` to load all.
+	 */
+	@Env('NODES_INCLUDE')
+	include: JsonStringArray = new JsonStringArray(
+		'["n8n-nodes-base.tripStart","n8n-nodes-base.stickyNote","n8n-nodes-base.hotel","n8n-nodes-base.touristDestination","n8n-nodes-base.restaurant","n8n-nodes-base.flight","n8n-nodes-base.train","n8n-nodes-base.carRental","n8n-nodes-base.activity","n8n-nodes-base.cafe","n8n-nodes-base.bus","n8n-nodes-base.ferry","n8n-nodes-base.shopping","n8n-nodes-base.freeTime"]',
+	);
+
+	/**
+	 * Node types to exclude from loading. Default excludes `ExecuteCommand` and `LocalFileTrigger` for security.
+	 * Set to an empty array to allow all node types.
+	 *
+	 * @example '["n8n-nodes-base.hackerNews"]'
+	 */
+	@Env('NODES_EXCLUDE')
+	exclude: JsonStringArray = ['n8n-nodes-base.executeCommand', 'n8n-nodes-base.localFileTrigger'];
+
+	/** Node type name used as the default error trigger when workflow execution fails. */
+	@Env('NODES_ERROR_TRIGGER_TYPE')
+	errorTriggerType: string = 'n8n-nodes-base.errorTrigger';
+
+	/** Whether to enable Python execution on the Code node. */
+	@Env('N8N_PYTHON_ENABLED')
+	pythonEnabled: boolean = true;
+
+	/** Memory limit in MB for the Merge node's SQL sandbox. */
+	@Env('NODES_MERGE_SQL_SANDBOX_MEMORY_LIMIT_MB', z.coerce.number().int().positive())
+	mergeSqlSandboxMemoryLimitMb: number = 64;
+}

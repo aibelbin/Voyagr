@@ -1,0 +1,508 @@
+import {
+	AGGREGATE_NODE_TYPE,
+	AI_CATEGORY_AGENTS,
+	AI_CATEGORY_CHAINS,
+	AI_CATEGORY_DOCUMENT_LOADERS,
+	AI_CATEGORY_EMBEDDING,
+	AI_CATEGORY_LANGUAGE_MODELS,
+	AI_CATEGORY_MEMORY,
+	AI_CATEGORY_OUTPUTPARSER,
+	AI_CATEGORY_RETRIEVERS,
+	AI_CATEGORY_TEXT_SPLITTERS,
+	AI_CATEGORY_TOOLS,
+	AI_CATEGORY_VECTOR_STORES,
+	AI_CODE_TOOL_LANGCHAIN_NODE_TYPE,
+	AI_NODE_CREATOR_VIEW,
+	AI_OTHERS_NODE_CREATOR_VIEW,
+	AI_SUBCATEGORY,
+	AI_TRANSFORM_NODE_TYPE,
+	AI_UNCATEGORIZED_CATEGORY,
+	AI_WORKFLOW_TOOL_LANGCHAIN_NODE_TYPE,
+	CHAT_TRIGGER_NODE_TYPE,
+	CODE_NODE_TYPE,
+	COMPRESSION_NODE_TYPE,
+	CONVERT_TO_FILE_NODE_TYPE,
+	CORE_NODES_CATEGORY,
+	CRYPTO_NODE_TYPE,
+	DATA_TABLE_NODE_TYPE,
+	DATETIME_NODE_TYPE,
+	DEFAULT_SUBCATEGORY,
+	EDIT_IMAGE_NODE_TYPE,
+	EMAIL_IMAP_NODE_TYPE,
+	EMAIL_SEND_NODE_TYPE,
+	EXECUTE_WORKFLOW_TRIGGER_NODE_TYPE,
+	EXTRACT_FROM_FILE_NODE_TYPE,
+	FILTER_NODE_TYPE,
+	FLOWS_CONTROL_SUBCATEGORY,
+	FORM_TRIGGER_NODE_TYPE,
+	HELPERS_SUBCATEGORY,
+	HITL_SUBCATEGORY,
+	HTML_NODE_TYPE,
+	HTTP_REQUEST_NODE_TYPE,
+	HUMAN_IN_THE_LOOP_CATEGORY,
+	IF_NODE_TYPE,
+	LIMIT_NODE_TYPE,
+	MANUAL_TRIGGER_NODE_TYPE,
+	MARKDOWN_NODE_TYPE,
+	MERGE_NODE_TYPE,
+	MESSAGE_AN_AGENT_NODE_TYPE,
+	OTHER_TRIGGER_NODES_SUBCATEGORY,
+	REGULAR_NODE_CREATOR_VIEW,
+	REMOVE_DUPLICATES_NODE_TYPE,
+	RSS_READ_NODE_TYPE,
+	SCHEDULE_TRIGGER_NODE_TYPE,
+	SET_NODE_TYPE,
+	SPLIT_IN_BATCHES_NODE_TYPE,
+	SPLIT_OUT_NODE_TYPE,
+	SUMMARIZE_NODE_TYPE,
+	TEMPLATE_CATEGORY_AI,
+	TRANSFORM_DATA_SUBCATEGORY,
+	TRIGGER_NODE_CREATOR_VIEW,
+	WEBHOOK_NODE_TYPE,
+	XML_NODE_TYPE,
+} from '@/app/constants';
+import { useNodeTypesStore } from '@/app/stores/nodeTypes.store';
+import { useSettingsStore } from '@/app/stores/settings.store';
+import type { NodeIconSource } from '@/app/utils/nodeIcon';
+import { useEvaluationStore } from '@/features/ai/evaluation.ee/evaluation.store';
+import { useTemplatesStore } from '@/features/workflows/templates/templates.store';
+import type { SimplifiedNodeType } from '@/Interface';
+import type { BaseTextKey } from '@n8n/i18n';
+import { useI18n } from '@n8n/i18n';
+import camelCase from 'lodash/camelCase';
+import type { INodeTypeDescription, NodeConnectionType, Themed } from 'n8n-workflow';
+import { EVALUATION_TRIGGER_NODE_TYPE, isHitlToolType, NodeConnectionTypes } from 'n8n-workflow';
+import { getAiTemplatesCallout, getSendAndWaitNodes } from '../nodeCreator.utils';
+
+export interface NodeViewItemSection {
+	key: string;
+	title: string;
+	items: string[];
+}
+
+export interface NodeViewItem {
+	key: string;
+	type: string;
+	properties: {
+		key?: string;
+		name?: string;
+		title?: string;
+		icon?: Themed<string>;
+		iconProps?: {
+			color?: string;
+		};
+		info?: string;
+		url?: string;
+		connectionType?: NodeConnectionType;
+		panelClass?: string;
+		group?: string[];
+		sections?: NodeViewItemSection[];
+		description?: string;
+		displayName?: string;
+		tag?: {
+			type?: string;
+			text?: string;
+			preview?: boolean;
+		};
+		forceIncludeNodes?: string[];
+		iconData?: { type: 'file'; fileBuffer: string } | { type: 'icon'; icon: string };
+	};
+	category?: string | string[];
+}
+
+export interface NodeView {
+	value: string;
+	title: string;
+	info?: string;
+	subtitle?: string;
+	items: NodeViewItem[];
+	nodeIcon?: NodeIconSource;
+}
+
+function getNodeView(node: INodeTypeDescription | SimplifiedNodeType) {
+	return {
+		key: node.name,
+		type: 'node',
+		properties: {
+			group: [],
+			name: node.name,
+			displayName: node.displayName,
+			title: node.displayName,
+			description: node.description,
+			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+			icon: node.icon!,
+			iconUrl: node.iconUrl,
+		},
+	};
+}
+
+function getAiNodesBySubcategory(nodes: INodeTypeDescription[], subcategory: string) {
+	return nodes
+		.filter(
+			(node) => !node.hidden && node.codex?.subcategories?.[AI_SUBCATEGORY]?.includes(subcategory),
+		)
+		.map(getNodeView)
+		.sort((a, b) => a.properties.displayName.localeCompare(b.properties.displayName));
+}
+
+function getEvaluationNode(
+	nodeTypesStore: ReturnType<typeof useNodeTypesStore>,
+	isEvaluationVariantEnabled: boolean,
+) {
+	const evaluationNodeStore = nodeTypesStore.getNodeType('n8n-nodes-base.evaluation');
+
+	if (!isEvaluationVariantEnabled || !evaluationNodeStore) {
+		return [];
+	}
+
+	const evaluationNode = getNodeView(evaluationNodeStore);
+
+	return [
+		{
+			...evaluationNode,
+			properties: {
+				...evaluationNode.properties,
+				defaults: {
+					name: 'Evaluation',
+					color: '#c3c9d5',
+				},
+			},
+		},
+	];
+}
+
+function getMessageAnAgentNode(
+	nodeTypesStore: ReturnType<typeof useNodeTypesStore>,
+	settingsStore: ReturnType<typeof useSettingsStore>,
+) {
+	if (!settingsStore.isModuleActive('agents')) return [];
+
+	const node = nodeTypesStore.getNodeType(MESSAGE_AN_AGENT_NODE_TYPE);
+	if (!node) return [];
+
+	// The early-preview tag is attached centrally in `applyNodeTags`.
+	return [getNodeView(node)];
+}
+
+export function AIView(_nodes: SimplifiedNodeType[]): NodeView {
+	const i18n = useI18n();
+	const nodeTypesStore = useNodeTypesStore();
+	const settingsStore = useSettingsStore();
+	const templatesStore = useTemplatesStore();
+	const evaluationStore = useEvaluationStore();
+	const isEvaluationEnabled = evaluationStore.isEvaluationEnabled;
+
+	const evaluationNode = getEvaluationNode(nodeTypesStore, isEvaluationEnabled);
+
+	const chainNodes = getAiNodesBySubcategory(nodeTypesStore.allLatestNodeTypes, AI_CATEGORY_CHAINS);
+	const agentNodes = getAiNodesBySubcategory(nodeTypesStore.allLatestNodeTypes, AI_CATEGORY_AGENTS);
+	const messageAnAgentNode = getMessageAnAgentNode(nodeTypesStore, settingsStore);
+
+	const websiteCategoryURLParams = templatesStore.websiteTemplateRepositoryParameters;
+	websiteCategoryURLParams.append('utm_user_role', 'AdvancedAI');
+	const aiTemplatesURL = templatesStore.constructTemplateRepositoryURL(
+		websiteCategoryURLParams,
+		TEMPLATE_CATEGORY_AI,
+	);
+
+	const askAiEnabled = settingsStore.isAskAiEnabled;
+	const aiTransformNode = nodeTypesStore.getNodeType(AI_TRANSFORM_NODE_TYPE);
+	const transformNode = askAiEnabled && aiTransformNode ? [getNodeView(aiTransformNode)] : [];
+
+	const callouts: NodeViewItem[] = [getAiTemplatesCallout(aiTemplatesURL)];
+
+	return {
+		value: AI_NODE_CREATOR_VIEW,
+		title: i18n.baseText('nodeCreator.aiPanel.aiNodes'),
+		subtitle: i18n.baseText('nodeCreator.aiPanel.selectAiNode'),
+		items: [
+			...callouts,
+			// shown only when agents module is active
+			// TODO: revert before GA release
+			...messageAnAgentNode,
+			...agentNodes,
+			...chainNodes,
+			...transformNode,
+			...evaluationNode,
+			{
+				key: AI_OTHERS_NODE_CREATOR_VIEW,
+				type: 'view',
+				properties: {
+					title: i18n.baseText('nodeCreator.aiPanel.aiOtherNodes'),
+					icon: 'robot',
+					description: i18n.baseText('nodeCreator.aiPanel.aiOtherNodesDescription'),
+				},
+			},
+		],
+	};
+}
+
+export function AINodesView(_nodes: SimplifiedNodeType[]): NodeView {
+	const i18n = useI18n();
+
+	function getAISubcategoryProperties(nodeConnectionType: NodeConnectionType) {
+		return {
+			connectionType: nodeConnectionType,
+			iconProps: {
+				color: `var(--node-type-${nodeConnectionType}-color)`,
+			},
+			panelClass: `nodes-list-panel-${nodeConnectionType}`,
+		};
+	}
+
+	function getSubcategoryInfo(subcategory: string) {
+		const localeKey = `nodeCreator.subcategoryInfos.${camelCase(subcategory)}` as BaseTextKey;
+
+		const info = i18n.baseText(localeKey);
+
+		// Return undefined if the locale key is not found
+		if (info === localeKey) return undefined;
+
+		return info;
+	}
+
+	return {
+		value: AI_OTHERS_NODE_CREATOR_VIEW,
+		title: i18n.baseText('nodeCreator.aiPanel.aiOtherNodes'),
+		subtitle: i18n.baseText('nodeCreator.aiPanel.selectAiNode'),
+		items: [
+			{
+				key: AI_CATEGORY_DOCUMENT_LOADERS,
+				type: 'subcategory',
+				properties: {
+					title: AI_CATEGORY_DOCUMENT_LOADERS,
+					info: getSubcategoryInfo(AI_CATEGORY_DOCUMENT_LOADERS),
+					icon: 'file-input',
+					...getAISubcategoryProperties(NodeConnectionTypes.AiDocument),
+				},
+			},
+			{
+				key: AI_CATEGORY_LANGUAGE_MODELS,
+				type: 'subcategory',
+				properties: {
+					title: AI_CATEGORY_LANGUAGE_MODELS,
+					info: getSubcategoryInfo(AI_CATEGORY_LANGUAGE_MODELS),
+					icon: 'language',
+					...getAISubcategoryProperties(NodeConnectionTypes.AiLanguageModel),
+				},
+			},
+			{
+				key: AI_CATEGORY_MEMORY,
+				type: 'subcategory',
+				properties: {
+					title: AI_CATEGORY_MEMORY,
+					info: getSubcategoryInfo(AI_CATEGORY_MEMORY),
+					icon: 'brain',
+					...getAISubcategoryProperties(NodeConnectionTypes.AiMemory),
+				},
+			},
+			{
+				key: AI_CATEGORY_OUTPUTPARSER,
+				type: 'subcategory',
+				properties: {
+					title: AI_CATEGORY_OUTPUTPARSER,
+					info: getSubcategoryInfo(AI_CATEGORY_OUTPUTPARSER),
+					icon: 'list',
+					...getAISubcategoryProperties(NodeConnectionTypes.AiOutputParser),
+				},
+			},
+			{
+				key: AI_CATEGORY_RETRIEVERS,
+				type: 'subcategory',
+				properties: {
+					title: AI_CATEGORY_RETRIEVERS,
+					info: getSubcategoryInfo(AI_CATEGORY_RETRIEVERS),
+					icon: 'search',
+					...getAISubcategoryProperties(NodeConnectionTypes.AiRetriever),
+				},
+			},
+			{
+				key: AI_CATEGORY_TEXT_SPLITTERS,
+				type: 'subcategory',
+				properties: {
+					title: AI_CATEGORY_TEXT_SPLITTERS,
+					info: getSubcategoryInfo(AI_CATEGORY_TEXT_SPLITTERS),
+					icon: 'grip-lines-vertical',
+					...getAISubcategoryProperties(NodeConnectionTypes.AiTextSplitter),
+				},
+			},
+			{
+				type: 'subcategory',
+				key: AI_CATEGORY_TOOLS,
+				category: CORE_NODES_CATEGORY,
+				properties: {
+					title: AI_CATEGORY_TOOLS,
+					info: getSubcategoryInfo(AI_CATEGORY_TOOLS),
+					icon: 'tools',
+					...getAISubcategoryProperties(NodeConnectionTypes.AiTool),
+					sections: [
+						{
+							key: 'popular',
+							title: i18n.baseText('nodeCreator.sectionNames.popular'),
+							items: [AI_WORKFLOW_TOOL_LANGCHAIN_NODE_TYPE, AI_CODE_TOOL_LANGCHAIN_NODE_TYPE],
+						},
+					],
+				},
+			},
+			{
+				key: AI_CATEGORY_EMBEDDING,
+				type: 'subcategory',
+				properties: {
+					title: AI_CATEGORY_EMBEDDING,
+					info: getSubcategoryInfo(AI_CATEGORY_EMBEDDING),
+					icon: 'vector-square',
+					...getAISubcategoryProperties(NodeConnectionTypes.AiEmbedding),
+				},
+			},
+			{
+				key: AI_CATEGORY_VECTOR_STORES,
+				type: 'subcategory',
+				properties: {
+					title: AI_CATEGORY_VECTOR_STORES,
+					info: getSubcategoryInfo(AI_CATEGORY_VECTOR_STORES),
+					icon: 'waypoints',
+					...getAISubcategoryProperties(NodeConnectionTypes.AiVectorStore),
+				},
+			},
+			{
+				key: AI_UNCATEGORIZED_CATEGORY,
+				type: 'subcategory',
+				properties: {
+					title: AI_UNCATEGORIZED_CATEGORY,
+					icon: 'code',
+				},
+			},
+		],
+	};
+}
+
+export function TriggerView() {
+	const i18n = useI18n();
+	const evaluationStore = useEvaluationStore();
+	const isEvaluationEnabled = evaluationStore.isEvaluationEnabled;
+
+	const evaluationTriggerNode = isEvaluationEnabled
+		? {
+				key: EVALUATION_TRIGGER_NODE_TYPE,
+				type: 'node',
+				category: [CORE_NODES_CATEGORY],
+				properties: {
+					group: [],
+					name: EVALUATION_TRIGGER_NODE_TYPE,
+					displayName: 'When running evaluation',
+					description: 'Run a dataset through your workflow to test performance',
+					icon: 'fa:check-double',
+					defaults: {
+						name: 'Evaluation',
+						color: '#c3c9d5',
+					},
+				},
+			}
+		: null;
+
+	const view: NodeView = {
+		value: TRIGGER_NODE_CREATOR_VIEW,
+		title: i18n.baseText('nodeCreator.triggerHelperPanel.selectATrigger'),
+		subtitle: i18n.baseText('nodeCreator.triggerHelperPanel.selectATriggerDescription'),
+		items: [
+			{
+				key: 'n8n-nodes-base.tripStart',
+				type: 'node',
+				category: [CORE_NODES_CATEGORY],
+				properties: {
+					group: [],
+					name: 'n8n-nodes-base.tripStart',
+					displayName: 'Start Trip',
+					description: 'The starting point of your itinerary',
+					icon: 'fa:paper-plane',
+				},
+			},
+		],
+	};
+
+	return view;
+}
+
+export function RegularView(nodes: SimplifiedNodeType[]) {
+	const i18n = useI18n();
+
+	const popularItemsSubcategory = [
+		SET_NODE_TYPE,
+		CODE_NODE_TYPE,
+		DATA_TABLE_NODE_TYPE,
+		DATETIME_NODE_TYPE,
+		AI_TRANSFORM_NODE_TYPE,
+	];
+
+	const view: NodeView = {
+		value: REGULAR_NODE_CREATOR_VIEW,
+		title: i18n.baseText('nodeCreator.triggerHelperPanel.whatHappensNext'),
+		items: [
+			{
+				type: 'subcategory',
+				key: 'Hotels',
+				category: CORE_NODES_CATEGORY,
+				properties: { title: 'Hotels', icon: 'house' },
+			},
+			{
+				type: 'subcategory',
+				key: 'Tourist Destinations',
+				category: CORE_NODES_CATEGORY,
+				properties: { title: 'Tourist Destinations', icon: 'telescope' },
+			},
+			{
+				type: 'subcategory',
+				key: 'Food & Dining',
+				category: CORE_NODES_CATEGORY,
+				properties: { title: 'Food & Dining', icon: 'pocket-knife' },
+			},
+			{
+				type: 'subcategory',
+				key: 'Travel Modes',
+				category: CORE_NODES_CATEGORY,
+				properties: { title: 'Travel Modes', icon: 'send' },
+			},
+			{
+				type: 'subcategory',
+				key: 'Experiences',
+				category: CORE_NODES_CATEGORY,
+				properties: { title: 'Experiences', icon: 'sparkles' },
+			},
+			{
+				type: 'subcategory',
+				key: 'Shopping',
+				category: CORE_NODES_CATEGORY,
+				properties: { title: 'Shopping', icon: 'gift' },
+			},
+			{
+				type: 'subcategory',
+				key: 'Rest & Free Time',
+				category: CORE_NODES_CATEGORY,
+				properties: { title: 'Rest & Free Time', icon: 'sun' },
+			},
+		],
+	};
+
+	// Voyagr: travel-only palette — no AI discovery tile, no "add another trigger".
+	return view;
+}
+
+export function HitlToolView(nodes: SimplifiedNodeType[]): NodeView {
+	const i18n = useI18n();
+
+	// Filter nodes whose name ends with 'HitlTool'
+	const hitlToolNodes = nodes
+		.filter((node) => isHitlToolType(node.name))
+		.map(getNodeView)
+		.sort((a, b) => a.properties.displayName.localeCompare(b.properties.displayName));
+
+	return {
+		value: HUMAN_IN_THE_LOOP_CATEGORY,
+		title: i18n.baseText('nodeCreator.subcategoryNames.humanInTheLoop'),
+		items: hitlToolNodes,
+		nodeIcon: {
+			type: 'icon',
+			name: 'badge-check',
+		},
+	};
+}
