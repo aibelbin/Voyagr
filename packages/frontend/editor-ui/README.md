@@ -1,59 +1,39 @@
-![n8n.io - Workflow Automation](https://user-images.githubusercontent.com/65276001/173571060-9f2f6d7b-bac0-43b6-bdb2-001da9694058.png)
+# Voyagr editor UI
 
-# n8n-editor-ui
+The Vue 3 frontend for Voyagr — the canvas where you build trips, pick places,
+and compare itinerary options.
 
-The UI to create and update n8n workflows
+This package is the n8n editor-ui, rebranded and wired for travel planning
+(My Trips, Plan trip, travel-only node creator, budget UI).
 
-```
-npm install n8n -g
-```
+## Setup
 
-## Project setup
+From the **repo root** (not this package alone):
 
-```
-pnpm install
-```
-
-### Compiles and hot-reloads for development
-
-```
-pnpm serve
+```bash
+CI=1 pnpm build:n8n
+N8N_DIAGNOSTICS_ENABLED=false pnpm start
+# open http://localhost:5678
 ```
 
-### Compiles and minifies for production
+### Package scripts (after a full monorepo build)
 
-```
-pnpm build
-```
-
-### Run your tests
-
-```
-pnpm test
+```bash
+pnpm serve      # hot-reload for this package
+pnpm build      # production build of editor-ui
+pnpm test       # unit tests
+pnpm lint       # lint
 ```
 
-### Lints and fixes files
+End-to-end tests live in `packages/testing/playwright` — see that package's README
+and [docs/VOYAGR.md](../../../docs/VOYAGR.md).
 
-```
-pnpm lint
-```
+## Related
 
-### Run your end-to-end tests
-
-```
-pnpm --filter=n8n-playwright test:local
-```
-
-### Run your unit tests
-
-```
-pnpm test:unit
-```
-
-### Customize configuration
-
-See [Configuration Reference](https://cli.vuejs.org/config/).
+- Travel nodes: `packages/nodes-base/nodes/Voyagr/`
+- Project handoff: [docs/VOYAGR.md](../../../docs/VOYAGR.md)
 
 ## License
 
-You can find the license information [here](https://github.com/n8n-io/n8n/blob/master/README.md#license)
+Sustainable Use License — see the [root README](../../../README.md#license).
+Voyagr is non-commercial.

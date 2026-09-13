@@ -1,13 +1,11 @@
-![n8n.io - Workflow Automation](https://user-images.githubusercontent.com/65276001/173571060-9f2f6d7b-bac0-43b6-bdb2-001da9694058.png)
+# Voyagr core (`n8n-core`)
 
-# n8n-core
+Execution and core runtime used by Voyagr. Package name remains `n8n-core`
+because this repo is an n8n fork; product-facing name is Voyagr.
 
-Core components for n8n
-
-```
-npm install n8n-core
-```
+Used by the CLI/server when running trips (workflows) on the canvas.
 
 ## License
 
-You can find the license information [here](https://github.com/n8n-io/n8n/blob/master/README.md#license)
+Sustainable Use License — see the [root README](../../README.md#license).
+Voyagr is non-commercial.

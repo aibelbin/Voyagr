@@ -1,13 +1,12 @@
-![n8n.io - Workflow Automation](https://user-images.githubusercontent.com/65276001/173571060-9f2f6d7b-bac0-43b6-bdb2-001da9694058.png)
+# Voyagr workflow package (`n8n-workflow`)
 
-# n8n-workflow
+Shared graph types and traversal utilities used by Voyagr itineraries
+(connections, parent/child node walks, budget branch pricing, etc.).
 
-Workflow base code for n8n
-
-```
-npm install n8n-workflow
-```
+Package name remains `n8n-workflow` as part of the upstream fork; in the product
+a “workflow” is a trip.
 
 ## License
 
-You can find the license information [here](https://github.com/n8n-io/n8n/blob/master/README.md#license)
+Sustainable Use License — see the [root README](../../README.md#license).
+Voyagr is non-commercial.

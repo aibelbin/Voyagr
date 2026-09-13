@@ -1,13 +1,34 @@
-![n8n.io - Workflow Automation](https://user-images.githubusercontent.com/65276001/173571060-9f2f6d7b-bac0-43b6-bdb2-001da9694058.png)
+# Voyagr travel nodes
 
-# n8n-nodes-base
+Default nodes shipped with Voyagr. The automation integrations from upstream
+n8n are not loaded; only travel nodes (plus Start Trip and Sticky Note) appear
+in the palette.
 
-The nodes which are included by default in n8n
+## Travel nodes
 
-```
-npm install n8n-nodes-base -g
-```
+| Category | Nodes |
+|---|---|
+| Hotels | Hotel |
+| Tourist Destinations | Tourist Destination |
+| Food & Dining | Restaurant, Cafe |
+| Travel Modes | Flight, Train, Car Rental, Bus, Ferry |
+| Experiences | Activity |
+| Shopping | Shopping |
+| Rest & Free Time | Free Time |
+
+Source: `nodes/Voyagr/<Name>/`. Registration and whitelist details are in
+[docs/VOYAGR.md](../../docs/VOYAGR.md) (§3–4).
+
+## Adding a node
+
+1. Add `nodes/Voyagr/<Name>/` (`*.node.ts`, `*.node.json`, icon SVG)
+2. Register in this package's `package.json` `n8n.nodes` array
+3. Add the type to the include list in `@n8n/config` `nodes.config.ts`
+4. If it's a new category, add a palette tile + i18n keys (see VOYAGR.md)
+
+Then from the repo root: `CI=1 pnpm build:n8n && pnpm start`.
 
 ## License
 
-You can find the license information [here](https://github.com/n8n-io/n8n/blob/master/README.md#license)
+Sustainable Use License — see the [root README](../../README.md#license).
+Voyagr is non-commercial.
